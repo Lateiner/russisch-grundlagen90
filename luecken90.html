@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Choice: Russische Zahlwörter (10 Aufgaben)</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+            --text-dark: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; }
+        
+        .question-box {
+            font-size: 1.5rem;
+            margin: 20px 0;
+            padding: 25px;
+            background: #eef2f7;
+            border-radius: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .blank {
+            color: var(--primary-blue);
+            font-weight: bold;
+            border-bottom: 2px solid var(--primary-blue);
+            padding: 0 10px;
+            margin: 0 5px;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 480px) {
+            .options-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .option-btn {
+            padding: 15px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary-blue);
+            background: #f0f7ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .footer-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn-action {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progressIndicator">Frage 1 von 10</div>
+    <h2>Multiple Choice</h2>
+    <p>Wähle die richtige Form nach der Zahl aus.</p>
+
+    <div class="question-box" id="questionArea"></div>
+
+    <div class="options-grid" id="optionsArea"></div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer-buttons">
+        <button class="btn-action btn-restart" onclick="restartQuiz()">Neustart</button>
+        <button class="btn-action btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { num: "пять", opts: ["здание", "здания", "зданий"], corr: 2 },
+        { num: "одна", opts: ["студентка", "студентки", "студенток"], corr: 0 },
+        { num: "семь", opts: ["сестра", "сестры", "сестёр"], corr: 2 },
+        { num: "десять", opts: ["маркер", "маркера", "маркеров"], corr: 2 },
+        { num: "один", opts: ["студент", "студента", "студентов"], corr: 0 },
+        { num: "восемь", opts: ["дерево", "дерева", "деревьев"], corr: 2 },
+        { num: "одно", opts: ["здание", "здания", "зданий"], corr: 0 },
+        { num: "шесть", opts: ["бабушка", "бабушки", "бабушек"], corr: 2 },
+        { num: "двадцать", opts: ["маркер", "маркера", "маркеров"], corr: 2 },
+        { num: "один", opts: ["рассказ", "рассказа", "рассказов"], corr: 0 }
+    ];
+
+    let currentIdx = 0;
+    let isTransitioning = false;
+
+    function loadQuestion() {
+        isTransitioning = false;
+        const data = quizData[currentIdx];
+        document.getElementById('progressIndicator').innerText = `Frage ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('questionArea').innerHTML = `${data.num} <span class="blank" id="blankSpace">...</span>`;
+        
+        const optionsArea = document.getElementById('optionsArea');
+        optionsArea.innerHTML = "";
+
+        data.opts.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(i, btn);
+            optionsArea.appendChild(btn);
+        });
+        document.getElementById('solveBtn').disabled = false;
+    }
+
+    function checkAnswer(idx, btn) {
+        if (isTransitioning) return;
+        const data = quizData[currentIdx];
+        const blank = document.getElementById('blankSpace');
+
+        if (idx === data.corr) {
+            isTransitioning = true;
+            btn.classList.add('correct');
+            blank.innerText = data.opts[idx];
+            showFeedback("Richtig!", "var(--success-green)");
+            proceedNext();
+        } else {
+            btn.classList.add('wrong');
+            showFeedback("Versuch es noch einmal!", "var(--error-red)");
+            setTimeout(() => btn.classList.remove('wrong'), 800);
+        }
+    }
+
+    function showSolution() {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        
+        const data = quizData[currentIdx];
+        const btns = document.querySelectorAll('.option-btn');
+        const blank = document.getElementById('blankSpace');
+
+        btns[data.corr].classList.add('correct');
+        blank.innerText = data.opts[data.corr];
+        showFeedback("Lösung angezeigt.", "var(--primary-blue)");
+        
+        document.getElementById('solveBtn').disabled = true;
+        proceedNext();
+    }
+
+    function proceedNext() {
+        setTimeout(() => {
+            if (currentIdx < quizData.length - 1) {
+                currentIdx++;
+                loadQuestion();
+            } else {
+                document.getElementById('feedbackArea').innerText = "Glückwunsch! Alle 10 Aufgaben geschafft.";
+                document.getElementById('feedbackArea').style.color = "var(--text-dark)";
+            }
+        }, 2000); // 2 Sekunden Pause zum Lesen
+    }
+
+    function showFeedback(text, color) {
+        const f = document.getElementById('feedbackArea');
+        f.innerText = text;
+        f.style.color = color;
+    }
+
+    function restartQuiz() {
+        currentIdx = 0;
+        loadQuestion();
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
