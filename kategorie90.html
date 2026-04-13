@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Zahlwörter</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 20px; }
+
+        /* Bereich für die Wort-Blöcke */
+        #item-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            min-height: 80px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        .draggable {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: grab;
+            user-select: none;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background-color 0.3s;
+            display: inline-block; /* Verhindert volle Breite */
+        }
+
+        .draggable:active { cursor: grabbing; transform: scale(1.05); }
+
+        /* Container für die Körbe/Dropzonen */
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+            flex-wrap: wrap;
+        }
+
+        .dropzone {
+            flex: 1;
+            min-width: 280px;
+            min-height: 250px;
+            background: #fff;
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .dropzone h3 {
+            margin-top: 0;
+            color: #4a5568;
+            pointer-events: none; /* Verhindert Drop-Fehler auf dem Text */
+        }
+
+        .dropzone.drag-over {
+            background: #e2e8f0;
+            border-color: var(--primary-blue);
+        }
+
+        /* Buttons */
+        .button-group {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:active { transform: translateY(2px); }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+
+        @media (max-width: 600px) {
+            .container { flex-direction: column; }
+            .dropzone { min-height: 150px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Kategorisierung: Zahlwörter</h2>
+    <p>Ziehe die Phrasen in den richtigen Korb.</p>
+
+    <div id="item-pool">
+        <!-- Draggable Items werden per JS geladen -->
+    </div>
+
+    <div class="container">
+        <div class="dropzone" id="zone1" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondragenter="dragEnter(event)">
+            <h3>Nach der Zahl 1</h3>
+        </div>
+        <div class="dropzone" id="zone2" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondragenter="dragEnter(event)">
+            <h3>Nach der Zahl 5</h3>
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button class="btn-restart" onclick="restartGame()">Neustart</button>
+        <button class="btn-solve" onclick="showSolution()">Lösung anzeigen</button>
+    </div>
+
+    <script>
+        const initialData = [
+            { text: "один студент", target: "zone1" },
+            { text: "одна студентка", target: "zone1" },
+            { text: "одно здание", target: "zone1" },
+            { text: "пять студентов", target: "zone2" },
+            { text: "пять студенток", target: "zone2" },
+            { text: "пять зданий", target: "zone2" },
+            { text: "один маркер", target: "zone1" },
+            { text: "десять маркеров", target: "zone2" }
+        ];
+
+        function createItems() {
+            const pool = document.getElementById('item-pool');
+            pool.innerHTML = '';
+            
+            // Zufällig mischen
+            const shuffled = [...initialData].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'draggable';
+                div.draggable = true;
+                div.id = 'item-' + index;
+                div.innerText = item.text;
+                div.dataset.target = item.target;
+                
+                div.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                });
+
+                pool.appendChild(div);
+            });
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+        }
+
+        function dragEnter(e) {
+            if (e.target.classList.contains('dropzone')) {
+                e.target.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(e) {
+            if (e.target.classList.contains('dropzone')) {
+                e.target.classList.remove('drag-over');
+            }
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const zone = e.target.closest('.dropzone');
+            zone.classList.remove('drag-over');
+
+            const id = e.dataTransfer.getData('text/plain');
+            const element = document.getElementById(id);
+            const correctTarget = element.dataset.target;
+
+            if (zone.id === correctTarget) {
+                element.style.backgroundColor = "var(--success-green)";
+                zone.appendChild(element);
+            } else {
+                element.style.backgroundColor = "var(--error-red)";
+                setTimeout(() => {
+                    element.style.backgroundColor = "var(--primary-blue)";
+                }, 800);
+            }
+        }
+
+        function restartGame() {
+            // Alle Zonen leeren
+            document.getElementById('zone1').innerHTML = '<h3>Nach der Zahl 1</h3>';
+            document.getElementById('zone2').innerHTML = '<h3>Nach der Zahl 5</h3>';
+            createItems();
+        }
+
+        function showSolution() {
+            const draggables = document.querySelectorAll('.draggable');
+            draggables.forEach(el => {
+                const targetZone = document.getElementById(el.dataset.target);
+                el.style.backgroundColor = "var(--success-green)";
+                targetZone.appendChild(el);
+            });
+        }
+
+        // Initialisierung
+        createItems();
+    </script>
+</body>
+</html>
