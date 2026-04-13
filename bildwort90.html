@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bild-Wort-Zuordnung: Kardinalzahlen</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        /* Bereich für die grafische Darstellung der 5 Objekte */
+        .image-area {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            font-size: 3.5rem; /* Größe der Emojis */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            border: 2px solid #eee;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        @media (hover: hover) {
+            .option-btn:hover:not(:disabled) {
+                border-color: var(--primary-blue);
+                background: #f0f7ff;
+            }
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            height: 30px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 400px) {
+            .image-area { font-size: 2.5rem; }
+            .option-btn { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <h2>Was siehst du hier?</h2>
+    <p>Wähle die richtige Beschreibung für das Bild.</p>
+
+    <div class="image-area" id="imageArea">
+        <!-- 5 Emojis werden hier eingefügt -->
+    </div>
+
+    <div class="options-list" id="optionsArea">
+        <!-- Buttons werden hier eingefügt -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="solve()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { emoji: "🍎", opts: ["пять яблоко", "пять яблока", "пять яблок"], corr: 2 },
+        { emoji: "🏠", opts: ["пять домов", "пять дома", "пять дом"], corr: 0 },
+        { emoji: "🌳", opts: ["пять дерево", "пять дерева", "пять деревьев"], corr: 2 },
+        { emoji: "📖", opts: ["пять книг", "пять книги", "пять книга"], corr: 0 },
+        { emoji: "🚗", opts: ["пять машин", "пять машины", "пять машина"], corr: 0 },
+        { emoji: "👩", opts: ["пять сестёр", "пять сестры", "пять сестра"], corr: 0 },
+        { emoji: "✏️", opts: ["пять маркер", "пять маркера", "пять маркеров"], corr: 2 },
+        { emoji: "🏢", opts: ["пять зданий", "пять здания", "пять здание"], corr: 0 },
+        { emoji: "🪟", opts: ["пять окно", "пять окна", "пять окон"], corr: 2 },
+        { emoji: "🐱", opts: ["пять кошка", "пять кошки", "пять кошек"], corr: 2 }
+    ];
+
+    let currentIdx = 0;
+    let locked = false;
+
+    function init() {
+        locked = false;
+        const data = quizData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von 10`;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('solveBtn').disabled = false;
+
+        // Bildbereich füllen (5 Emojis anzeigen)
+        const imgArea = document.getElementById('imageArea');
+        imgArea.innerHTML = "";
+        for(let i=0; i<5; i++) {
+            const span = document.createElement('span');
+            span.innerText = data.emoji;
+            imgArea.appendChild(span);
+        }
+
+        // Optionen mischen oder direkt laden
+        const optArea = document.getElementById('optionsArea');
+        optArea.innerHTML = "";
+        data.opts.forEach((text, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = text;
+            btn.onclick = () => check(i, btn);
+            optArea.appendChild(btn);
+        });
+    }
+
+    function check(i, btn) {
+        if (locked) return;
+        const data = quizData[currentIdx];
+
+        if (i === data.corr) {
+            locked = true;
+            btn.classList.add('correct');
+            showFeedback("Richtig! Toll gemacht.", "var(--success-green)");
+            next();
+        } else {
+            btn.classList.add('wrong');
+            showFeedback("Leider falsch. Versuchs nochmal!", "var(--error-red)");
+            setTimeout(() => btn.classList.remove('wrong'), 800);
+        }
+    }
+
+    function solve() {
+        if (locked) return;
+        locked = true;
+        const data = quizData[currentIdx];
+        const btns = document.querySelectorAll('.option-btn');
+        
+        btns[data.corr].classList.add('correct');
+        document.getElementById('solveBtn').disabled = true;
+        showFeedback("Lösung: " + data.opts[data.corr], "var(--primary-blue)");
+        next();
+    }
+
+    function showFeedback(txt, col) {
+        const f = document.getElementById('feedback');
+        f.innerText = txt;
+        f.style.color = col;
+    }
+
+    function next() {
+        setTimeout(() => {
+            if (currentIdx < quizData.length - 1) {
+                currentIdx++;
+                init();
+            } else {
+                showFeedback("Hervorragend! Alle 10 Bilder richtig benannt.", "var(--text-dark)");
+            }
+        }, 2200);
+    }
+
+    function restart() {
+        currentIdx = 0;
+        init();
+    }
+
+    // Start
+    init();
+</script>
+
+</body>
+</html>
