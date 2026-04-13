@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sofort-Feedback: Russische Zahlen</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f4f7f9;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 800px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h2 { color: var(--text-dark); text-align: center; margin-top: 0; }
+        p.instruction { text-align: center; color: #636e72; margin-bottom: 30px; }
+
+        .sentence {
+            font-size: 1.15rem;
+            line-height: 2;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background: #fff;
+            border-left: 5px solid #dfe6e9;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        /* Feedback-Zustände für den ganzen Satz */
+        .sentence.is-correct { border-left-color: var(--success-green); background-color: #f0fff4; }
+        .sentence.is-wrong { border-left-color: var(--error-red); background-color: #fff5f5; }
+
+        select {
+            padding: 5px 8px;
+            font-size: 1rem;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            background-color: #fff;
+            cursor: pointer;
+            margin: 0 5px;
+            outline: none;
+            transition: all 0.2s;
+            /* Verhindert Zoom auf Mobilgeräten */
+            font-size: 16px;
+        }
+
+        /* Feedback-Zustände für das Dropdown */
+        select.correct-select { border-color: var(--success-green); color: var(--success-green); font-weight: bold; }
+        select.wrong-select { border-color: var(--error-red); color: var(--error-red); }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-solve { background-color: var(--success-green); }
+        .btn-restart { background-color: #6c757d; }
+
+        .score-display {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .sentence { font-size: 1rem; line-height: 2.5; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Lückentext: Sofort-Feedback</h2>
+    <p class="instruction">Wähle die richtige Form. Das System prüft deine Eingabe sofort.</p>
+
+    <div id="quizForm">
+        <div class="sentence" data-answer="пяти">
+            1. У меня нет 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="пять">пять</option>
+                <option value="пяти">пяти</option>
+                <option value="пятью">пятью</option>
+            </select> 
+            маркеров. (Genitiv)
+        </div>
+
+        <div class="sentence" data-answer="пять">
+            2. Я вижу 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="пять">пять</option>
+                <option value="пяти">пяти</option>
+                <option value="пятью">пятью</option>
+            </select> 
+            маркеров. (Akkusativ)
+        </div>
+
+        <div class="sentence" data-answer="пятью">
+            3. Он интересуется 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="пять">пять</option>
+                <option value="пяти">пяти</option>
+                <option value="пятью">пятью</option>
+            </select> 
+            художниками. (Instrumental)
+        </div>
+
+        <div class="sentence" data-answer="десяти">
+            4. Она подошла к 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="десять">десять</option>
+                <option value="десяти">десяти</option>
+                <option value="десятью">десятью</option>
+            </select> 
+            подругам. (Dativ)
+        </div>
+
+        <div class="sentence" data-answer="четырнадцати">
+            5. Они говорили о 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="четырнадцать">четырнадцать</option>
+                <option value="четырнадцати">четырнадцати</option>
+                <option value="четырнадцатью">четырнадцатью</option>
+            </select> 
+            экскурсиях. (Präpositiv)
+        </div>
+
+        <div class="sentence" data-answer="девятнадцатью">
+            6. Я интересуюсь 
+            <select onchange="validate(this)">
+                <option value="">--?--</option>
+                <option value="девятнадцать">девятнадцать</option>
+                <option value="девятнадцати">девятнадцати</option>
+                <option value="девятнадцатью">девятнадцатью</option>
+            </select> 
+            поэтами. (Instrumental)
+        </div>
+    </div>
+
+    <div id="score" class="score-display"></div>
+
+    <div class="controls">
+        <button class="btn btn-solve" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    function validate(selectElement) {
+        const sentence = selectElement.closest('.sentence');
+        const correctAnswer = sentence.dataset.answer;
+        const userAnswer = selectElement.value;
+
+        // Wenn die Standardoption gewählt wird, alles zurücksetzen
+        if (userAnswer === "") {
+            sentence.classList.remove('is-correct', 'is-wrong');
+            selectElement.classList.remove('correct-select', 'wrong-select');
+            updateScore();
+            return;
+        }
+
+        if (userAnswer === correctAnswer) {
+            sentence.classList.add('is-correct');
+            sentence.classList.remove('is-wrong');
+            selectElement.classList.add('correct-select');
+            selectElement.classList.remove('wrong-select');
+        } else {
+            sentence.classList.add('is-wrong');
+            sentence.classList.remove('is-correct');
+            selectElement.classList.add('wrong-select');
+            selectElement.classList.remove('correct-select');
+        }
+        updateScore();
+    }
+
+    function updateScore() {
+        const total = document.querySelectorAll('.sentence').length;
+        const correct = document.querySelectorAll('.is-correct').length;
+        const scoreDiv = document.getElementById('score');
+        
+        if (correct > 0) {
+            scoreDiv.innerText = `Fortschritt: ${correct} von ${total} richtig`;
+        } else {
+            scoreDiv.innerText = "";
+        }
+
+        if (correct === total) {
+            scoreDiv.innerText = "Hervorragend! Alles richtig gelöst. 🎉";
+            scoreDiv.style.color = "var(--success-green)";
+        } else {
+            scoreDiv.style.color = "var(--primary-blue)";
+        }
+    }
+
+    function showSolution() {
+        const sentences = document.querySelectorAll('.sentence');
+        sentences.forEach(s => {
+            const select = s.querySelector('select');
+            select.value = s.dataset.answer;
+            validate(select);
+        });
+    }
+
+    function restart() {
+        const selects = document.querySelectorAll('select');
+        selects.forEach(sel => {
+            sel.value = "";
+            validate(sel);
+        });
+        document.getElementById('score').innerText = "";
+    }
+</script>
+
+</body>
+</html>
