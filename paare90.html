@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Flexionstabelle: ПЯТЬ</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: #333; }
+        p { text-align: center; color: #666; margin-bottom: 25px; }
+
+        /* Wort-Pool */
+        #pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #eef2f7;
+            border-radius: 10px;
+            min-height: 50px;
+        }
+
+        .chip {
+            background: var(--primary-blue);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: grab;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        /* Tabelle */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th { background-color: #f1f1f1; color: #444; }
+
+        .case-name {
+            width: 40%;
+            font-weight: 600;
+            background: #fdfdfd;
+        }
+
+        .drop-zone {
+            width: 60%;
+            background: #fff;
+            min-height: 40px;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .drop-zone.hover { background: #e0e7ff; }
+
+        .drop-zone .chip {
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        /* Feedback Farben */
+        .correct { background-color: #d4edda !important; }
+        .incorrect { background-color: #f8d7da !important; }
+
+        @media (max-width: 500px) {
+            th, td { padding: 8px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Flexionstabelle: ПЯТЬ (5)</h2>
+    <p>Ziehe die richtigen russischen Formen in die Tabelle.</p>
+
+    <div id="pool" ondrop="dropToPool(event)" ondragover="allowDrop(event)">
+        <!-- Chips werden hier geladen -->
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fall (Kasus)</th>
+                <th>Russische Form</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-case="nom">
+                <td class="case-name">Nominativ</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+            <tr data-case="gen">
+                <td class="case-name">Genitiv</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+            <tr data-case="dat">
+                <td class="case-name">Dativ</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+            <tr data-case="acc">
+                <td class="case-name">Akkusativ</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+            <tr data-case="ins">
+                <td class="case-name">Instrumental</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+            <tr data-case="pre">
+                <td class="case-name">Präpositiv</td>
+                <td class="drop-zone" ondrop="drop(event)" ondragover="allowDrop(event)"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const correctAnswers = {
+        nom: "пять",
+        gen: "пяти",
+        dat: "пяти",
+        acc: "пять",
+        ins: "пятью",
+        pre: "пяти"
+    };
+
+    const chipsData = ["пять", "пяти", "пяти", "пять", "пятью", "пяти"];
+
+    function initPool() {
+        const pool = document.getElementById('pool');
+        pool.innerHTML = '';
+        chipsData.sort(() => Math.random() - 0.5).forEach((text, i) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = text;
+            chip.draggable = true;
+            chip.id = 'chip-' + i;
+            chip.addEventListener('dragstart', drag);
+            pool.appendChild(chip);
+        });
+    }
+
+    function allowDrop(e) { e.preventDefault(); }
+
+    function drag(e) {
+        e.dataTransfer.setData("text", e.target.id);
+        e.target.parentNode.classList.remove('correct', 'incorrect');
+    }
+
+    function drop(e) {
+        e.preventDefault();
+        const data = e.dataTransfer.getData("text");
+        const chip = document.getElementById(data);
+        const zone = e.target.closest('.drop-zone');
+
+        if (zone && zone.children.length === 0) {
+            zone.appendChild(chip);
+            validate(zone, chip.innerText);
+        }
+    }
+
+    function dropToPool(e) {
+        e.preventDefault();
+        const data = e.dataTransfer.getData("text");
+        const chip = document.getElementById(data);
+        const pool = document.getElementById('pool');
+        chip.parentNode.classList.remove('correct', 'incorrect');
+        pool.appendChild(chip);
+    }
+
+    function validate(zone, text) {
+        const caseKey = zone.parentNode.dataset.case;
+        if (text === correctAnswers[caseKey]) {
+            zone.classList.add('correct');
+            zone.classList.remove('incorrect');
+        } else {
+            zone.classList.add('incorrect');
+            zone.classList.remove('correct');
+        }
+    }
+
+    function restart() {
+        const zones = document.querySelectorAll('.drop-zone');
+        zones.forEach(z => {
+            z.innerHTML = '';
+            z.classList.remove('correct', 'incorrect');
+        });
+        initPool();
+    }
+
+    function solve() {
+        const zones = document.querySelectorAll('.drop-zone');
+        const pool = document.getElementById('pool');
+        pool.innerHTML = ''; // Pool leeren
+        
+        zones.forEach(z => {
+            const caseKey = z.parentNode.dataset.case;
+            z.innerHTML = `<div class="chip" style="background:var(--success-green)">${correctAnswers[caseKey]}</div>`;
+            z.classList.add('correct');
+            z.classList.remove('incorrect');
+        });
+    }
+
+    initPool();
+</script>
+
+</body>
+</html>
