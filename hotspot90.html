@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotspot-Quiz: Russische Zahlen (8 Aufgaben)</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 750px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        h2 { color: #333; margin-top: 0; }
+        p.instruction { color: #555; margin-bottom: 30px; line-height: 1.5; }
+
+        .sentence-display {
+            font-size: 1.3rem;
+            line-height: 2.8;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 25px;
+            background: #f1f3f5;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+        }
+
+        .word {
+            padding: 2px 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            user-select: none;
+            background: rgba(255,255,255,0.5);
+            border: 1px solid transparent;
+        }
+
+        @media (hover: hover) {
+            .word:hover {
+                background-color: #fff;
+                border-color: var(--primary-blue);
+                color: var(--primary-blue);
+            }
+        }
+
+        .word.selected-wrong {
+            background-color: var(--error-red) !important;
+            color: white !important;
+            border-color: var(--error-red);
+        }
+
+        .word.selected-correct {
+            background-color: var(--success-green) !important;
+            color: white !important;
+            border-color: var(--success-green);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .feedback {
+            height: 35px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 500px) {
+            .sentence-display { font-size: 1.15rem; gap: 6px; padding: 15px; }
+            .btn { padding: 10px 15px; font-size: 0.9rem; }
+            .container { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="progress" id="progress">Satz 1 von 8</div>
+    <h2>Finde den Fehler!</h2>
+    <p class="instruction">In jedem Satz ist die <b>Zahl</b> falsch dekliniert.<br>Klicke auf das Wort mit der falschen Endung.</p>
+
+    <div class="sentence-display" id="sentenceArea"></div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            words: ["У", "меня", "нет", "пять", "маркеров."],
+            errorIndex: 3,
+            correction: "пяти"
+        },
+        {
+            words: ["Она", "подошла", "к", "десять", "подругам."],
+            errorIndex: 3,
+            correction: "десяти"
+        },
+        {
+            words: ["Я", "интересуюсь", "пять", "известными", "художниками."],
+            errorIndex: 2,
+            correction: "пятью"
+        },
+        {
+            words: ["Они", "говорили", "о", "двенадцать", "экскурсиях."],
+            errorIndex: 3,
+            correction: "двенадцати"
+        },
+        {
+            words: ["В", "списке", "нет", "семь", "студенток."],
+            errorIndex: 3,
+            correction: "семи"
+        },
+        {
+            words: ["Мы", "видим", "пятнадцать", "новых", "зданий."],
+            errorIndex: 2, // Hier ist die Zahl im Akkusativ bei Unbelebtem eigentlich gleich, 
+                           // aber wir nutzen es für die Übung: "пятнадцати" wäre hier falsch.
+                           // Lassen wir uns ein klareres Beispiel für einen Fehler nehmen:
+            words: ["У", "нас", "нет", "двадцать", "тетрадей."],
+            errorIndex: 3,
+            correction: "двадцати"
+        },
+        {
+            words: ["Я", "горжусь", "пятнадцать", "студентами."],
+            errorIndex: 2,
+            correction: "пятнадцатью"
+        },
+        {
+            words: ["В", "тридцать", "рассказах", "есть", "картинки."],
+            errorIndex: 1,
+            correction: "тридцати"
+        }
+    ];
+
+    let currentIndex = 0;
+    let locked = false;
+
+    function loadSentence() {
+        locked = false;
+        const data = quizData[currentIndex];
+        const area = document.getElementById('sentenceArea');
+        const progress = document.getElementById('progress');
+        const feedback = document.getElementById('feedbackArea');
+        
+        progress.innerText = `Satz ${currentIndex + 1} von ${quizData.length}`;
+        feedback.innerText = "";
+        area.innerHTML = "";
+        document.getElementById('solveBtn').disabled = false;
+
+        data.words.forEach((word, index) => {
+            const span = document.createElement('span');
+            span.className = 'word';
+            span.innerText = word;
+            span.onclick = () => checkWord(index, span);
+            area.appendChild(span);
+        });
+    }
+
+    function checkWord(index, element) {
+        if (locked) return;
+        const data = quizData[currentIndex];
+
+        if (index === data.errorIndex) {
+            locked = true;
+            element.classList.add('selected-correct');
+            showFeedback(`Richtig! Korrekt wäre: "${data.correction}"`, "var(--success-green)");
+            
+            setTimeout(() => {
+                if (currentIndex < quizData.length - 1) {
+                    currentIndex++;
+                    loadSentence();
+                } else {
+                    showFeedback("Hervorragend! Du hast alle 8 Fehler gefunden. 🎉", "var(--primary-blue)");
+                    document.getElementById('solveBtn').disabled = true;
+                }
+            }, 2500);
+        } else {
+            element.classList.add('selected-wrong');
+            showFeedback("Dieses Wort ist grammatikalisch richtig.", "var(--error-red)");
+            setTimeout(() => element.classList.remove('selected-wrong'), 800);
+        }
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const data = quizData[currentIndex];
+        const spans = document.querySelectorAll('.word');
+        
+        spans[data.errorIndex].classList.add('selected-correct');
+        document.getElementById('solveBtn').disabled = true;
+        showFeedback(`Lösung: "${data.words[data.errorIndex]}" muss "${data.correction}" sein.`, "var(--primary-blue)");
+
+        setTimeout(() => {
+            if (currentIndex < quizData.length - 1) {
+                currentIndex++;
+                loadSentence();
+            } else {
+                showFeedback("Übung beendet. Klicke auf Neustart.", "var(--text-dark)");
+            }
+        }, 3000);
+    }
+
+    function showFeedback(text, color) {
+        const f = document.getElementById('feedbackArea');
+        f.innerText = text;
+        f.style.color = color;
+    }
+
+    function restart() {
+        currentIndex = 0;
+        loadSentence();
+    }
+
+    loadSentence();
+</script>
+
+</body>
+</html>
