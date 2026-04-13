@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reihenfolge sortieren: Deklination</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        p { text-align: center; color: #666; margin-bottom: 25px; }
+
+        /* Bereich für die verfügbaren Wörter */
+        #word-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #eef2f7;
+            border-radius: 10px;
+            min-height: 60px;
+        }
+
+        .word-card {
+            background: var(--primary-blue);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: grab;
+            font-weight: bold;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .word-card:active { cursor: grabbing; }
+
+        /* Die Sortier-Liste */
+        .sort-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sort-row {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .case-label {
+            width: 120px;
+            padding: 15px;
+            background: #f1f1f1;
+            font-weight: bold;
+            color: #444;
+            border-right: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+
+        .drop-slot {
+            flex-grow: 1;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            transition: background 0.2s;
+        }
+
+        .drop-slot.drag-over { background: #e0e7ff; }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.1s;
+        }
+
+        .btn:active { transform: translateY(2px); }
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        /* Statusfarben */
+        .correct-slot { background-color: #d4edda; }
+        .wrong-slot { background-color: #f8d7da; }
+
+        @media (max-width: 480px) {
+            .case-label { width: 90px; font-size: 0.8rem; padding: 10px; }
+            .word-card { padding: 8px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Reihenfolge: десять</h2>
+    <p>Bringe die russischen Formen in die richtige Reihenfolge der Fälle.</p>
+
+    <div id="word-pool" ondrop="dropToPool(event)" ondragover="allowDrop(event)">
+        <!-- Wörter werden hier geladen -->
+    </div>
+
+    <div class="sort-list">
+        <div class="sort-row">
+            <div class="case-label">1. Nominativ</div>
+            <div class="drop-slot" id="slot-nom" data-correct="десять" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="sort-row">
+            <div class="case-label">2. Genitiv</div>
+            <div class="drop-slot" id="slot-gen" data-correct="десяти" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="sort-row">
+            <div class="case-label">3. Dativ</div>
+            <div class="drop-slot" id="slot-dat" data-correct="десяти" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="sort-row">
+            <div class="case-label">4. Akkusativ</div>
+            <div class="drop-slot" id="slot-acc" data-correct="десять" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="sort-row">
+            <div class="case-label">5. Instrumental</div>
+            <div class="drop-slot" id="slot-ins" data-correct="десятью" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="sort-row">
+            <div class="case-label">6. Präpositiv</div>
+            <div class="drop-slot" id="slot-pre" data-correct="десяти" ondrop="dropToSlot(event)" ondragover="allowDrop(event)"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const words = ["десять", "десяти", "десяти", "десять", "десятью", "десяти"];
+
+    function init() {
+        const pool = document.getElementById('word-pool');
+        pool.innerHTML = '';
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((w, i) => {
+            const div = document.createElement('div');
+            div.className = 'word-card';
+            div.innerText = w;
+            div.draggable = true;
+            div.id = 'word-' + i;
+            div.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData("textId", e.target.id);
+            });
+            pool.appendChild(div);
+        });
+    }
+
+    function allowDrop(e) {
+        e.preventDefault();
+        if (e.target.classList.contains('drop-slot')) {
+            e.target.classList.add('drag-over');
+        }
+    }
+
+    // Falls man das Wort wieder zurück in den Pool zieht
+    function dropToPool(e) {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("textId");
+        const el = document.getElementById(id);
+        const pool = document.getElementById('word-pool');
+        
+        if (el.parentNode.classList.contains('drop-slot')) {
+            el.parentNode.classList.remove('correct-slot', 'wrong-slot');
+        }
+        pool.appendChild(el);
+    }
+
+    function dropToSlot(e) {
+        e.preventDefault();
+        const slot = e.target.closest('.drop-slot');
+        slot.classList.remove('drag-over');
+        
+        const id = e.dataTransfer.getData("textId");
+        const el = document.getElementById(id);
+
+        if (slot.children.length === 0) {
+            slot.appendChild(el);
+            checkSlot(slot, el.innerText);
+        }
+    }
+
+    function checkSlot(slot, text) {
+        if (text === slot.dataset.correct) {
+            slot.classList.add('correct-slot');
+            slot.classList.remove('wrong-slot');
+        } else {
+            slot.classList.add('wrong-slot');
+            slot.classList.remove('correct-slot');
+        }
+    }
+
+    function restart() {
+        document.querySelectorAll('.drop-slot').forEach(s => {
+            s.innerHTML = '';
+            s.classList.remove('correct-slot', 'wrong-slot');
+        });
+        init();
+    }
+
+    function solve() {
+        const slots = document.querySelectorAll('.drop-slot');
+        const pool = document.getElementById('word-pool');
+        pool.innerHTML = ''; // Pool leeren
+
+        slots.forEach(slot => {
+            const correctText = slot.dataset.correct;
+            slot.innerHTML = `<div class="word-card" style="background:var(--success-green)">${correctText}</div>`;
+            slot.classList.add('correct-slot');
+            slot.classList.remove('wrong-slot');
+        });
+    }
+
+    // Event Listener für Drag-Leave Effekt
+    document.addEventListener("dragleave", function(e) {
+        if (e.target.classList.contains('drop-slot')) {
+            e.target.classList.remove('drag-over');
+        }
+    });
+
+    init();
+</script>
+
+</body>
+</html>
