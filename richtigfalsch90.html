@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Richtig oder Falsch: Zahlen 7 und 8</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-card {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .phrase-display {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #333;
+            padding: 40px 20px;
+            background: #f1f3f5;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .choice-container {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .choice-btn {
+            width: 80px;
+            height: 80px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            transition: transform 0.2s, opacity 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn-correct { background-color: var(--success-green); }
+        .btn-incorrect { background-color: var(--error-red); }
+
+        .choice-btn:active { transform: scale(0.9); }
+        .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .feedback-area {
+            min-height: 50px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .footer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--primary-blue); }
+
+        @media (max-width: 400px) {
+            .phrase-display { font-size: 1.3rem; }
+            .choice-btn { width: 70px; height: 70px; font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="progress" id="progress">Frage 1 von 10</div>
+    <h2>Richtig oder Falsch?</h2>
+    <p>Ist die Deklination von 7 oder 8 korrekt?</p>
+
+    <div class="phrase-display" id="phraseArea">
+        <!-- Phrase wird hier geladen -->
+    </div>
+
+    <div class="choice-container">
+        <button class="choice-btn btn-incorrect" onclick="makeChoice(false)" title="Falsch">✕</button>
+        <button class="choice-btn btn-correct" onclick="makeChoice(true)" title="Richtig">✓</button>
+    </div>
+
+    <div class="feedback-area" id="feedbackArea"></div>
+
+    <div class="footer-controls">
+        <button class="control-btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="control-btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { phrase: "у восьми студентов", correct: true, info: "Richtig! Genitiv von восемь ist восьми." },
+        { phrase: "о семь подругах", correct: false, info: "Falsch! Im Präpositiv muss es 'о семи' heißen." },
+        { phrase: "с восемью друзьями", correct: true, info: "Richtig! Instrumental von восемь ist восемью." },
+        { phrase: "к восемь бабушкам", correct: false, info: "Falsch! Im Dativ muss es 'к восьми' heißen." },
+        { phrase: "в семи книгах", correct: true, info: "Richtig! Präpositiv von семь ist семи." },
+        { phrase: "нет семь сестёр", correct: false, info: "Falsch! Im Genitiv muss es 'семи' heißen." },
+        { phrase: "семью картинами", correct: true, info: "Richtig! Instrumental von семь ist семью." },
+        { phrase: "к восьми студентам", correct: true, info: "Richtig! Dativ von восемь ist восьми." },
+        { phrase: "о восемь зданиях", correct: false, info: "Falsch! Im Präpositiv muss es 'о восьми' heißen." },
+        { phrase: "у семи дедушек", correct: true, info: "Richtig! Genitiv von семь ist семи." }
+    ];
+
+    let currentIdx = 0;
+    let locked = false;
+
+    function init() {
+        locked = false;
+        const data = quizData[currentIdx];
+        document.getElementById('phraseArea').innerText = data.phrase;
+        document.getElementById('progress').innerText = `Frage ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('solveBtn').disabled = false;
+        
+        // Buttons aktivieren
+        const btns = document.querySelectorAll('.choice-btn');
+        btns.forEach(b => {
+            b.disabled = false;
+            b.style.transform = "scale(1)";
+        });
+    }
+
+    function makeChoice(userGuess) {
+        if (locked) return;
+        locked = true;
+        
+        const data = quizData[currentIdx];
+        const feedback = document.getElementById('feedbackArea');
+        const solveBtn = document.getElementById('solveBtn');
+        solveBtn.disabled = true;
+
+        if (userGuess === data.correct) {
+            feedback.innerText = "Gut gemacht! " + data.info;
+            feedback.style.color = "var(--success-green)";
+        } else {
+            feedback.innerText = "Leider nicht. " + data.info;
+            feedback.style.color = "var(--error-red)";
+        }
+
+        nextQuestion();
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const data = quizData[currentIdx];
+        const feedback = document.getElementById('feedbackArea');
+        
+        feedback.innerText = "Lösung: " + data.info;
+        feedback.style.color = "var(--primary-blue)";
+        
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        setTimeout(() => {
+            if (currentIdx < quizData.length - 1) {
+                currentIdx++;
+                init();
+            } else {
+                document.getElementById('phraseArea').innerText = "Übung beendet!";
+                document.getElementById('feedbackArea').innerText = "Du hast alle Fragen durchgearbeitet.";
+                document.getElementById('feedbackArea').style.color = "var(--primary-blue)";
+                const btns = document.querySelectorAll('.choice-btn');
+                btns.forEach(b => b.disabled = true);
+            }
+        }, 2500);
+    }
+
+    function restart() {
+        currentIdx = 0;
+        init();
+    }
+
+    // Erster Start
+    init();
+</script>
+
+</body>
+</html>
