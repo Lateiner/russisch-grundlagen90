@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baukasten: Zehnerzahlen 50-80</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .instruction {
+            text-align: center;
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        /* Bereich für die Bausteine (Präfixe) */
+        #prefix-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: #eef2f7;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            min-height: 50px;
+        }
+
+        .prefix {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: grab;
+            font-weight: bold;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .prefix:active { cursor: grabbing; }
+
+        /* Die Bau-Zonen */
+        .construction-table {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .build-row {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .target-label {
+            flex: 0 0 150px;
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .drop-zone {
+            width: 100px;
+            height: 45px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            transition: all 0.2s;
+        }
+
+        .drop-zone.drag-over {
+            background: #e0e7ff;
+            border-color: var(--primary-blue);
+        }
+
+        .suffix {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        /* Buttons */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        /* Status */
+        .correct-zone { border-color: var(--success-green) !important; background: #f0fff4 !important; }
+        .wrong-zone { border-color: var(--error-red) !important; background: #fff5f5 !important; }
+
+        @media (max-width: 500px) {
+            .build-row { flex-direction: column; text-align: center; padding: 15px; }
+            .target-label { flex: none; margin-bottom: 5px; }
+            .prefix { padding: 8px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Baukasten: 50, 60, 70, 80</h2>
+    <p class="instruction">
+        Erinnere dich: Diese Zahlen bestehen aus zwei Teilen (z.B. 5 x 10).<br>
+        Ziehe den richtigen <b>ersten Teil</b> in die Lücke.
+    </p>
+
+    <div id="prefix-pool" ondrop="dropToPool(event)" ondragover="allowDrop(event)">
+        <!-- Präfixe werden hier geladen -->
+    </div>
+
+    <div class="construction-table">
+        <!-- Aufgabe 1 -->
+        <div class="build-row">
+            <div class="target-label">50 (Nominativ)</div>
+            <div class="drop-zone" id="zone1" data-correct="пять" ondrop="dropToZone(event)" ondragover="allowDrop(event)"></div>
+            <div class="suffix">-десят</div>
+        </div>
+
+        <!-- Aufgabe 2 -->
+        <div class="build-row">
+            <div class="target-label">60 (Genitiv)</div>
+            <div class="drop-zone" id="zone2" data-correct="шести" ondrop="dropToZone(event)" ondragover="allowDrop(event)"></div>
+            <div class="suffix">-десяти</div>
+        </div>
+
+        <!-- Aufgabe 3 -->
+        <div class="build-row">
+            <div class="target-label">70 (Instrumental)</div>
+            <div class="drop-zone" id="zone3" data-correct="семью" ondrop="dropToZone(event)" ondragover="allowDrop(event)"></div>
+            <div class="suffix">-десятью</div>
+        </div>
+
+        <!-- Aufgabe 4 -->
+        <div class="build-row">
+            <div class="target-label">80 (Präpositiv)</div>
+            <div class="drop-zone" id="zone4" data-correct="восьми" ondrop="dropToZone(event)" ondragover="allowDrop(event)"></div>
+            <div class="suffix">-десяти</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const prefixes = ["пять", "шести", "семью", "восьми"];
+
+    function initPool() {
+        const pool = document.getElementById('prefix-pool');
+        pool.innerHTML = '';
+        const shuffled = [...prefixes].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((text, i) => {
+            const div = document.createElement('div');
+            div.className = 'prefix';
+            div.innerText = text;
+            div.draggable = true;
+            div.id = 'pref-' + i;
+            div.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData("textId", e.target.id);
+            });
+            pool.appendChild(div);
+        });
+    }
+
+    function allowDrop(e) {
+        e.preventDefault();
+        if (e.target.classList.contains('drop-zone')) {
+            e.target.classList.add('drag-over');
+        }
+    }
+
+    // Drag Leave Effekt
+    document.addEventListener("dragleave", function(e) {
+        if (e.target.classList.contains('drop-zone')) {
+            e.target.classList.remove('drag-over');
+        }
+    });
+
+    function dropToZone(e) {
+        e.preventDefault();
+        const zone = e.target.closest('.drop-zone');
+        zone.classList.remove('drag-over');
+        
+        const id = e.dataTransfer.getData("textId");
+        const el = document.getElementById(id);
+
+        if (zone.children.length === 0) {
+            zone.appendChild(el);
+            checkResult(zone, el.innerText);
+        }
+    }
+
+    function dropToPool(e) {
+        e.preventDefault();
+        const id = e.dataTransfer.getData("textId");
+        const el = document.getElementById(id);
+        const pool = document.getElementById('prefix-pool');
+        
+        if (el.parentNode.classList.contains('drop-zone')) {
+            el.parentNode.classList.remove('correct-zone', 'wrong-zone');
+        }
+        pool.appendChild(el);
+    }
+
+    function checkResult(zone, text) {
+        if (text === zone.dataset.correct) {
+            zone.classList.add('correct-zone');
+            zone.classList.remove('wrong-zone');
+        } else {
+            zone.classList.add('wrong-zone');
+            zone.classList.remove('correct-zone');
+        }
+    }
+
+    function restart() {
+        document.querySelectorAll('.drop-zone').forEach(z => {
+            z.innerHTML = '';
+            z.classList.remove('correct-zone', 'wrong-zone');
+        });
+        initPool();
+    }
+
+    function solve() {
+        const zones = document.querySelectorAll('.drop-zone');
+        document.getElementById('prefix-pool').innerHTML = '';
+
+        zones.forEach(zone => {
+            const correct = zone.dataset.correct;
+            zone.innerHTML = `<div class="prefix" style="background:var(--success-green)">${correct}</div>`;
+            zone.classList.add('correct-zone');
+            zone.classList.remove('wrong-zone');
+        });
+    }
+
+    initPool();
+</script>
+
+</body>
+</html>
