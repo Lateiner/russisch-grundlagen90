@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verknüpfungs-Quiz: Russische Zehnerzahlen</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; font-size: 1.5rem; }
+        
+        .math-display {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            padding: 30px;
+            background: #eef2f7;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 2px solid #dfe6e9;
+        }
+
+        .instruction {
+            color: #636e72;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .number-btn {
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-dark);
+        }
+
+        @media (hover: hover) {
+            .number-btn:hover:not(:disabled) {
+                border-color: var(--primary-blue);
+                background-color: #f1f7ff;
+                transform: translateY(-2px);
+            }
+        }
+
+        .number-btn.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .number-btn.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            height: 40px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 400px) {
+            .math-display { font-size: 1.3rem; padding: 20px; }
+            .number-btn { padding: 15px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progressText">Frage 1 von 8</div>
+    <h2>Welche Zahl ist das?</h2>
+    <p class="instruction">Rechne die Bausteine zusammen:</p>
+
+    <div class="math-display" id="mathPrompt">
+        <!-- Anzeige: fünf + десят -->
+    </div>
+
+    <div class="options-grid">
+        <button class="number-btn" onclick="checkAnswer(50)">50</button>
+        <button class="number-btn" onclick="checkAnswer(60)">60</button>
+        <button class="number-btn" onclick="checkAnswer(70)">70</button>
+        <button class="number-btn" onclick="checkAnswer(80)">80</button>
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer-controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { prompt: "пять + десят", answer: 50 },
+        { prompt: "шести + десяти", answer: 60 },
+        { prompt: "семью + десятью", answer: 70 },
+        { prompt: "восьми + десяти", answer: 80 },
+        { prompt: "пятью + десятью", answer: 50 },
+        { prompt: "семи + десяти", answer: 70 },
+        { prompt: "шесть + десят", answer: 60 },
+        { prompt: "восемью + десятью", answer: 80 }
+    ];
+
+    let currentIdx = 0;
+    let locked = false;
+
+    function loadQuestion() {
+        locked = false;
+        const data = quizData[currentIdx];
+        document.getElementById('progressText').innerText = `Frage ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('mathPrompt').innerText = data.prompt;
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('solveBtn').disabled = false;
+        
+        // Buttons zurücksetzen
+        const btns = document.querySelectorAll('.number-btn');
+        btns.forEach(b => {
+            b.className = 'number-btn';
+            b.disabled = false;
+        });
+    }
+
+    function checkAnswer(selectedNumber) {
+        if (locked) return;
+        
+        const data = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.number-btn');
+        let selectedBtn;
+        
+        buttons.forEach(b => {
+            if(parseInt(b.innerText) === selectedNumber) selectedBtn = b;
+        });
+
+        if (selectedNumber === data.answer) {
+            locked = true;
+            selectedBtn.classList.add('correct');
+            showFeedback("Richtig!", "var(--success-green)");
+            setTimeout(nextQuestion, 1500);
+        } else {
+            selectedBtn.classList.add('wrong');
+            showFeedback("Falsch, probier es noch einmal!", "var(--error-red)");
+            setTimeout(() => {
+                if(!locked) selectedBtn.classList.remove('wrong');
+            }, 800);
+        }
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        
+        const data = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.number-btn');
+        
+        buttons.forEach(b => {
+            if(parseInt(b.innerText) === data.answer) {
+                b.classList.add('correct');
+            }
+            b.disabled = true;
+        });
+
+        showFeedback(`Lösung: ${data.answer}`, "var(--primary-blue)");
+        document.getElementById('solveBtn').disabled = true;
+        setTimeout(nextQuestion, 2000);
+    }
+
+    function nextQuestion() {
+        if (currentIdx < quizData.length - 1) {
+            currentIdx++;
+            loadQuestion();
+        } else {
+            document.getElementById('mathPrompt').innerText = "Fertig!";
+            document.getElementById('feedbackArea').innerText = "Klasse! Du beherrschst die Zehnerzahlen.";
+            document.getElementById('feedbackArea').style.color = "var(--success-green)";
+            document.querySelectorAll('.number-btn').forEach(b => b.disabled = true);
+        }
+    }
+
+    function showFeedback(text, color) {
+        const f = document.getElementById('feedbackArea');
+        f.innerText = text;
+        f.style.color = color;
+    }
+
+    function restart() {
+        currentIdx = 0;
+        loadQuestion();
+    }
+
+    // Erster Start
+    loadQuestion();
+</script>
+
+</body>
+</html>
