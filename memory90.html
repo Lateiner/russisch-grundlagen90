@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory: 16 Karten (7 & 8)</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --card-back: #34495e;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card {
+            height: 90px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s, opacity 0.5s;
+            cursor: pointer;
+        }
+
+        .card.flipped { transform: rotateY(180deg); }
+        
+        /* Wenn gefunden, verschwindet die Karte */
+        .card.hidden { opacity: 0; pointer-events: none; }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            padding: 5px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+        }
+
+        .card-front { background-color: var(--card-back); color: white; }
+        .card-front::after { content: "?"; font-size: 1.5rem; opacity: 0.2; }
+
+        .card-back {
+            background-color: white;
+            color: #333;
+            transform: rotateY(180deg);
+            border-color: #ddd;
+        }
+
+        /* Farbkennzeichnung für die Lösung (8 Paare) */
+        .sol-1 { border-color: #e74c3c !important; background-color: #fadbd8 !important; }
+        .sol-2 { border-color: #3498db !important; background-color: #d6eaf8 !important; }
+        .sol-3 { border-color: #f1c40f !important; background-color: #fcf3cf !important; }
+        .sol-4 { border-color: #9b59b6 !important; background-color: #ebdef0 !important; }
+        .sol-5 { border-color: #e67e22 !important; background-color: #fae5d3 !important; }
+        .sol-6 { border-color: #1abc9c !important; background-color: #d1f2eb !important; }
+        .sol-7 { border-color: #34495e !important; background-color: #d5dbdb !important; }
+        .sol-8 { border-color: #2ecc71 !important; background-color: #d4efdf !important; }
+
+        .controls { margin-top: 30px; display: flex; gap: 15px; }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--primary-blue); }
+
+        .info { margin-top: 15px; font-weight: bold; height: 20px; color: var(--success-green); }
+
+        @media (max-width: 480px) {
+            .card { height: 75px; }
+            .card-face { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Memory: Deklination 7 & 8</h2>
+        <p>Finde die Paare. Korrekte Paare verschwinden vom Feld.</p>
+    </div>
+
+    <div class="memory-grid" id="grid"></div>
+
+    <div class="info" id="infoArea"></div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="initGame()">Neustart</button>
+        <button class="btn btn-solve" onclick="showSolution()">Lösung anzeigen</button>
+    </div>
+
+    <script>
+        const pairs = [
+            { id: 1, a: "Nominativ 7", b: "семь" },
+            { id: 2, a: "Genitiv 7", b: "семи" },
+            { id: 3, a: "Instrumental 7", b: "семью" },
+            { id: 4, a: "Nominativ 8", b: "восемь" },
+            { id: 5, a: "Genitiv 8", b: "восьми" },
+            { id: 6, a: "Instrumental 8", b: "восемью" },
+            { id: 7, a: "Präpositiv 7", b: "о семи" },
+            { id: 8, a: "Präpositiv 8", b: "о восьми" }
+        ];
+
+        let flipped = [];
+        let matchedCount = 0;
+        let busy = false;
+
+        function initGame() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            flipped = [];
+            matchedCount = 0;
+            busy = false;
+            document.getElementById('infoArea').innerText = '';
+
+            let cards = [];
+            pairs.forEach(p => {
+                cards.push({ id: p.id, text: p.a });
+                cards.push({ id: p.id, text: p.b });
+            });
+            cards.sort(() => Math.random() - 0.5);
+
+            cards.forEach((data, i) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.id = data.id;
+                card.innerHTML = `
+                    <div class="card-face card-front"></div>
+                    <div class="card-face card-back">${data.text}</div>
+                `;
+                card.onclick = () => flip(card);
+                grid.appendChild(card);
+            });
+        }
+
+        function flip(card) {
+            if (busy || card.classList.contains('flipped') || card.classList.contains('hidden')) return;
+            
+            card.classList.add('flipped');
+            flipped.push(card);
+
+            if (flipped.length === 2) {
+                busy = true;
+                const [c1, c2] = flipped;
+                if (c1.dataset.id === c2.dataset.id) {
+                    setTimeout(() => {
+                        c1.classList.add('hidden');
+                        c2.classList.add('hidden');
+                        matchedCount++;
+                        flipped = [];
+                        busy = false;
+                        if (matchedCount === 8) document.getElementById('infoArea').innerText = "Alles gefunden!";
+                    }, 600);
+                } else {
+                    setTimeout(() => {
+                        c1.classList.remove('flipped');
+                        c2.classList.remove('flipped');
+                        flipped = [];
+                        busy = false;
+                    }, 1000);
+                }
+            }
+        }
+
+        function showSolution() {
+            busy = true;
+            const all = document.querySelectorAll('.card');
+            all.forEach(card => {
+                card.classList.remove('hidden'); // Alle wieder einblenden
+                card.classList.add('flipped');   // Alle aufdecken
+                const pairId = card.dataset.id;
+                const backFace = card.querySelector('.card-back');
+                backFace.classList.add('sol-' + pairId); // Individuelle Farbe zuweisen
+            });
+            document.getElementById('infoArea').innerText = "Lösung: Paare haben gleiche Farben.";
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
