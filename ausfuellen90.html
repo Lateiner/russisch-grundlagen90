@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktive Tabellen: 50, 60 und 70</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 650px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .level-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        h2 { text-align: center; color: #333; margin: 5px 0; }
+        p.instruction { text-align: center; color: #666; margin-bottom: 20px; font-size: 0.95rem; }
+
+        /* Wort-Pool */
+        .pool-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            background: #eef2f7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            min-height: 50px;
+        }
+
+        .chip {
+            background: var(--primary-blue);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .chip.selected {
+            background-color: #fd7e14;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Tabelle */
+        .declension-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        .declension-table th, .declension-table td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .declension-table th { background: #f8f9fa; color: #495057; }
+
+        .case-col { width: 35%; font-weight: bold; color: #495057; }
+
+        .target-slot {
+            height: 40px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .target-slot.correct-slot { border-color: var(--success-green); background: #f0fff4; color: var(--success-green); }
+        .target-slot.wrong-slot { border-color: var(--error-red); background: #fff5f5; color: var(--error-red); }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-nav { background: #6c757d; min-width: 60px; }
+        .btn-restart { background: #343a40; }
+        .btn-solve { background: var(--success-green); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        @media (max-width: 500px) {
+            .declension-table th, .declension-table td { padding: 8px; font-size: 0.85rem; }
+            .target-slot { height: 34px; font-size: 0.85rem; }
+            .btn { padding: 8px 12px; font-size: 0.85rem; }
+            h2 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="level-nav">
+        <button class="btn btn-nav" id="prevBtn" onclick="changeLevel(-1)">←</button>
+        <span id="levelIndicator" style="font-weight: bold; color: var(--primary-blue);">Tabelle 1 / 3</span>
+        <button class="btn btn-nav" id="nextBtn" onclick="changeLevel(1)">→</button>
+    </div>
+
+    <h2 id="tableTitle">Zahl 50 (пятьдесят)</h2>
+    <p class="instruction">Wähle ein Wort aus dem blauen Pool und klicke auf die passende Lücke.</p>
+
+    <div class="pool-area" id="wordPool"></div>
+
+    <table class="declension-table">
+        <thead>
+            <tr>
+                <th>Fall (Kasus)</th>
+                <th>Richtige Form</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td class="case-col">Nominativ</td><td><div class="target-slot" data-case="nom" onclick="placeWord(this)"></div></td></tr>
+            <tr><td class="case-col">Genitiv</td><td><div class="target-slot" data-case="gen" onclick="placeWord(this)"></div></td></tr>
+            <tr><td class="case-col">Dativ</td><td><div class="target-slot" data-case="dat" onclick="placeWord(this)"></div></td></tr>
+            <tr><td class="case-col">Akkusativ</td><td><div class="target-slot" data-case="acc" onclick="placeWord(this)"></div></td></tr>
+            <tr><td class="case-col">Instrumental</td><td><div class="target-slot" data-case="ins" onclick="placeWord(this)"></div></td></tr>
+            <tr><td class="case-col">Präpositiv</td><td><div class="target-slot" data-case="pre" onclick="placeWord(this)"></div></td></tr>
+        </tbody>
+    </table>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        {
+            title: "Zahl 50 (пятьдесят)",
+            correct: {
+                nom: "пятьдесят",
+                gen: "пятидесяти",
+                dat: "пятидесяти",
+                acc: "пятьдесят",
+                ins: "пятьюдесятью",
+                pre: "пятидесяти"
+            },
+            pool: ["пятьдесят", "пятидесяти", "пятидесяти", "пятьдесят", "пятьюдесятью", "пятидесяти"]
+        },
+        {
+            title: "Zahl 60 (шестьдесят)",
+            correct: {
+                nom: "шестьдесят",
+                gen: "шестидесяти",
+                dat: "шестидесяти",
+                acc: "шестьдесят",
+                ins: "шестьюдесятью",
+                pre: "шестидесяти"
+            },
+            pool: ["шестьдесят", "шестидесяти", "шестидесяти", "шестьдесят", "шестьюдесятью", "шестидесяти"]
+        },
+        {
+            title: "Zahl 70 (семьдесят)",
+            correct: {
+                nom: "семьдесят",
+                gen: "семидесяти",
+                dat: "семидесяти",
+                acc: "семьдесят",
+                ins: "семьюдесятью",
+                pre: "семидесяти"
+            },
+            pool: ["семьдесят", "семидесяти", "семидесяти", "семьдесят", "семьюдесятью", "семидесяти"]
+        }
+    ];
+
+    let currentLevel = 0;
+    let selectedChip = null;
+
+    function loadLevel() {
+        const data = levels[currentLevel];
+        document.getElementById('tableTitle').innerText = data.title;
+        document.getElementById('levelIndicator').innerText = `Tabelle ${currentLevel + 1} / ${levels.length}`;
+        
+        document.getElementById('prevBtn').disabled = (currentLevel === 0);
+        document.getElementById('nextBtn').disabled = (currentLevel === levels.length - 1);
+
+        const poolArea = document.getElementById('wordPool');
+        poolArea.innerHTML = '';
+        const shuffled = [...data.pool].sort(() => Math.random() - 0.5);
+        shuffled.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = text;
+            chip.onclick = () => selectChip(chip);
+            poolArea.appendChild(chip);
+        });
+
+        document.querySelectorAll('.target-slot').forEach(slot => {
+            slot.innerText = '';
+            slot.className = 'target-slot';
+        });
+        selectedChip = null;
+    }
+
+    function selectChip(chip) {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+        if (selectedChip === chip) {
+            selectedChip = null;
+        } else {
+            selectedChip = chip;
+            chip.classList.add('selected');
+        }
+    }
+
+    function placeWord(slot) {
+        if (slot.innerText !== '') {
+            const text = slot.innerText;
+            const poolArea = document.getElementById('wordPool');
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = text;
+            chip.onclick = () => selectChip(chip);
+            poolArea.appendChild(chip);
+            
+            slot.innerText = '';
+            slot.className = 'target-slot';
+            return;
+        }
+
+        if (selectedChip) {
+            const text = selectedChip.innerText;
+            const caseName = slot.dataset.case;
+            slot.innerText = text;
+            
+            if (text === levels[currentLevel].correct[caseName]) {
+                slot.classList.add('correct-slot');
+            } else {
+                slot.classList.add('wrong-slot');
+            }
+
+            selectedChip.remove();
+            selectedChip = null;
+        }
+    }
+
+    function changeLevel(step) {
+        currentLevel += step;
+        loadLevel();
+    }
+
+    function restart() {
+        loadLevel();
+    }
+
+    function solve() {
+        const data = levels[currentLevel];
+        document.getElementById('wordPool').innerHTML = '';
+        document.querySelectorAll('.target-slot').forEach(slot => {
+            const caseName = slot.dataset.case;
+            slot.innerText = data.correct[caseName];
+            slot.className = 'target-slot correct-slot';
+        });
+    }
+
+    loadLevel();
+</script>
+
+</body>
+</html>
