@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fehler-Detektiv: Zehnerzahlen</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f4f8;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; }
+        p.instruction { color: #636e72; margin-bottom: 25px; line-height: 1.4; }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 480px) {
+            .options-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 2px solid #dfe6e9;
+            padding: 15px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        @media (hover: hover) {
+            .option-btn:hover:not(:disabled) {
+                border-color: var(--primary-blue);
+                background-color: #f1f7ff;
+            }
+        }
+
+        .option-btn.correct-find {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-btn.wrong-pick {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            height: 40px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hint {
+            font-size: 0.85rem;
+            color: #636e72;
+            margin-top: 10px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progressIndicator">Aufgabe 1 von 4</div>
+    <h2>Fehler-Detektiv</h2>
+    <p class="instruction">Welche dieser Formen <b>existiert im Russischen nicht</b>?<br>(Suche die falsche Deklination!)</p>
+
+    <div class="options-grid" id="optionsArea">
+        <!-- Buttons werden hier geladen -->
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer-controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+    
+    <p class="hint">Tipp: Bei 50, 60, 70, 80 müssen immer <b>beide Teile</b> des Wortes gebeugt werden.</p>
+</div>
+
+<script>
+    const quizData = [
+        {
+            title: "Die Zahl 50",
+            options: ["пятьдесят", "пятидесяти", "пятьюдесятью", "пятидесят"],
+            fakeIndex: 3, // "пятидесят" ist falsch (zweiter Teil nicht gebeugt)
+            explanation: "Falsch ist 'пятидесят'. Es muss 'пятидесяти' heißen (beide Teile beugen!)."
+        },
+        {
+            title: "Die Zahl 60",
+            options: ["шестидесяти", "шестьдесятью", "шестьюдесятью", "шестьдесят"],
+            fakeIndex: 1, // "шестьдесятью" ist falsch (erster Teil nicht gebeugt)
+            explanation: "Falsch ist 'шестьдесятью'. Der erste Teil muss zu 'шестью' werden."
+        },
+        {
+            title: "Die Zahl 70",
+            options: ["семидесяти", "семьюдесятью", "семидесят", "семьдесят"],
+            fakeIndex: 2, // "семидесят" ist falsch
+            explanation: "Falsch ist 'семидесят'. Auch der Zehner-Teil braucht ein -и am Ende."
+        },
+        {
+            title: "Die Zahl 80",
+            options: ["восемьдесят", "восьмидесяти", "восемьюдесятью", "восьмидесят"],
+            fakeIndex: 3, // "восьmiдесят" ist falsch
+            explanation: "Falsch ist 'восьмидесят'. Korrekt ist 'восьмидесяти'."
+        }
+    ];
+
+    let currentIdx = 0;
+    let locked = false;
+
+    function loadLevel() {
+        locked = false;
+        const data = quizData[currentIdx];
+        const optionsArea = document.getElementById('optionsArea');
+        const feedback = document.getElementById('feedbackArea');
+        const progress = document.getElementById('progressIndicator');
+        
+        progress.innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        feedback.innerText = "";
+        optionsArea.innerHTML = "";
+        document.getElementById('solveBtn').disabled = false;
+
+        data.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex, btn) {
+        if (locked) return;
+        
+        const data = quizData[currentIdx];
+        const feedback = document.getElementById('feedbackArea');
+
+        if (selectedIndex === data.fakeIndex) {
+            locked = true;
+            btn.classList.add('correct-find');
+            feedback.innerText = "Richtig erkannt! " + data.explanation;
+            feedback.style.color = "var(--success-green)";
+            
+            setTimeout(nextLevel, 3000);
+        } else {
+            btn.classList.add('wrong-pick');
+            feedback.innerText = "Nein, diese Form existiert. Suche die falsche!";
+            feedback.style.color = "var(--error-red)";
+            setTimeout(() => btn.classList.remove('wrong-pick'), 1000);
+        }
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const data = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons[data.fakeIndex].classList.add('correct-find');
+        document.getElementById('feedbackArea').innerText = "Lösung: " + data.explanation;
+        document.getElementById('feedbackArea').style.color = "var(--primary-blue)";
+        document.getElementById('solveBtn').disabled = true;
+
+        setTimeout(nextLevel, 4000);
+    }
+
+    function nextLevel() {
+        if (currentIdx < quizData.length - 1) {
+            currentIdx++;
+            loadLevel();
+        } else {
+            document.getElementById('feedbackArea').innerText = "Klasse! Du hast alle Fehler entlarvt.";
+            document.getElementById('optionsArea').style.opacity = "0.5";
+        }
+    }
+
+    function restart() {
+        currentIdx = 0;
+        document.getElementById('optionsArea').style.opacity = "1";
+        loadLevel();
+    }
+
+    // Initialstart
+    loadLevel();
+</script>
+
+</body>
+</html>
