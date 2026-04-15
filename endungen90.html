@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Endungs-Zuordnung: Kongruenz</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header-info {
+            background: #eef2f7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 2px solid #dfe6e9;
+        }
+
+        .header-info h3 { margin: 0; color: var(--primary-blue); font-size: 1.4rem; }
+
+        /* Bereich für die Sätze mit Lücken */
+        .exercise-area {
+            font-size: 1.3rem;
+            line-height: 2.5;
+            margin-bottom: 30px;
+            text-align: left;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .word-segment { display: inline-block; }
+
+        .slot {
+            display: inline-block;
+            min-width: 50px;
+            height: 35px;
+            border-bottom: 2px solid #ccc;
+            margin: 0 5px;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            color: var(--primary-blue);
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .slot:hover { background-color: #f0f7ff; }
+        .slot.filled { border-bottom-color: var(--primary-blue); }
+        .slot.correct { color: var(--success-green); border-bottom-color: var(--success-green); }
+        .slot.wrong { color: var(--error-red); border-bottom-color: var(--error-red); }
+
+        /* Endungs-Pool */
+        .pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f1f3f5;
+            border-radius: 10px;
+        }
+
+        .ending-chip {
+            background: white;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .ending-chip.selected {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* Controls */
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-next { background: var(--primary-blue); }
+        .btn-solve { background: var(--success-green); }
+
+        @media (max-width: 500px) {
+            .exercise-area { font-size: 1.1rem; line-height: 3; }
+            .ending-chip { padding: 4px 12px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-info">
+        <h3 id="caseTitle">Instrumental (Творительный)</h3>
+        <p style="margin: 5px 0 0 0; color: #666;">Passe die Endungen an die Zahl an.</p>
+    </div>
+
+    <div class="exercise-area" id="exerciseArea">
+        <!-- Hier erscheint der Satz, z.B. пятью нов... студент... -->
+    </div>
+
+    <div class="pool" id="endingPool">
+        <!-- Hier erscheinen die Endungen, z.B. -ыми, -аmi -->
+    </div>
+
+    <div class="footer">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung</button>
+        <button class="btn btn-next" id="nextBtn" onclick="nextLevel()" style="display:none;">Weiter</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        {
+            case: "Instrumental (Творительный)",
+            text: ["Интересуюсь пятью", "нов", "ыми", "художник", "ами", "."],
+            pool: ["-ыми", "-ами", "-ых", "-ах", "-ым", "-ам"]
+        },
+        {
+            case: "Dativ (Дательный)",
+            text: ["Иду к десяти", "стар", "ым", "подруг", "ам", "."],
+            pool: ["-ым", "-ам", "-ыми", "-ами", "-ых", "-ах"]
+        },
+        {
+            case: "Präpositiv (Предложный)",
+            text: ["Говорю о сорока", "известн", "ых", "поэт", "ах", "."],
+            pool: ["-ых", "-ах", "-ыми", "-ами", "-ым", "-ам"]
+        },
+        {
+            case: "Instrumental (Творительный)",
+            text: ["С семью", "красив", "ыми", "картин", "ами", "."],
+            pool: ["-ыми", "-ами", "-ым", "-ам", "-ых", "-ах"]
+        }
+    ];
+
+    let currentLevel = 0;
+    let selectedEnding = null;
+
+    function loadLevel() {
+        const data = levels[currentLevel];
+        document.getElementById('caseTitle').innerText = data.case;
+        document.getElementById('nextBtn').style.display = 'none';
+        
+        // Satz laden
+        const area = document.getElementById('exerciseArea');
+        area.innerHTML = '';
+        
+        // Das Datenformat: [Prefix, AdjStem, AdjEnd, NounStem, NounEnd, Suffix]
+        // Wir bauen den Satz zusammen und setzen Lücken für Index 2 und 4
+        data.text.forEach((part, i) => {
+            if (i === 2 || i === 4) {
+                const slot = document.createElement('span');
+                slot.className = 'slot';
+                slot.dataset.correct = part;
+                slot.innerText = '...';
+                slot.onclick = () => placeEnding(slot);
+                area.appendChild(slot);
+            } else {
+                const span = document.createElement('span');
+                span.innerText = part + ' ';
+                area.appendChild(span);
+            }
+        });
+
+        // Pool laden
+        const pool = document.getElementById('endingPool');
+        pool.innerHTML = '';
+        const shuffledPool = [...data.pool].sort(() => Math.random() - 0.5);
+        shuffledPool.forEach(end => {
+            const chip = document.createElement('div');
+            chip.className = 'ending-chip';
+            chip.innerText = end;
+            chip.onclick = () => selectEnding(chip);
+            pool.appendChild(chip);
+        });
+        selectedEnding = null;
+    }
+
+    function selectEnding(chip) {
+        document.querySelectorAll('.ending-chip').forEach(c => c.classList.remove('selected'));
+        selectedEnding = chip.innerText;
+        chip.classList.add('selected');
+    }
+
+    function placeEnding(slot) {
+        if (!selectedEnding) return;
+        
+        // "-ыми" vs "ыmi" normalisieren (Strich entfernen)
+        const cleanSelected = selectedEnding.replace('-', '');
+        const cleanCorrect = slot.dataset.correct.replace('-', '');
+
+        slot.innerText = selectedEnding;
+        slot.classList.add('filled');
+
+        if (cleanSelected === cleanCorrect) {
+            slot.classList.add('correct');
+            slot.classList.remove('wrong');
+        } else {
+            slot.classList.add('wrong');
+            slot.classList.remove('correct');
+        }
+
+        checkCompletion();
+    }
+
+    function checkCompletion() {
+        const slots = document.querySelectorAll('.slot');
+        const allCorrect = Array.from(slots).every(s => s.classList.contains('correct'));
+        if (allCorrect) {
+            document.getElementById('nextBtn').style.display = 'inline-block';
+        }
+    }
+
+    function nextLevel() {
+        if (currentLevel < levels.length - 1) {
+            currentLevel++;
+            loadLevel();
+        } else {
+            document.getElementById('exerciseArea').innerHTML = "<strong>Klasse!</strong> Du hast alle Kongruenz-Endungen richtig zugeordnet.";
+            document.getElementById('endingPool').innerHTML = '';
+            document.getElementById('nextBtn').style.display = 'none';
+        }
+    }
+
+    function solve() {
+        const slots = document.querySelectorAll('.slot');
+        slots.forEach(slot => {
+            slot.innerText = slot.dataset.correct;
+            slot.className = 'slot correct';
+        });
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    }
+
+    function restart() {
+        currentLevel = 0;
+        loadLevel();
+    }
+
+    loadLevel();
+</script>
+
+</body>
+</html>
