@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anpassungs-Quiz: Kongruenz</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f8f9fa;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; font-size: 1.4rem; }
+        
+        .prompt-box {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            padding: 25px;
+            background: #eef2f7;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 2px solid #dfe6e9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .blank {
+            color: #aaa;
+            border-bottom: 3px solid #ccc;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        .instruction {
+            color: #636e72;
+            margin-bottom: 25px;
+        }
+
+        /* Optionen */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .option-btn {
+            padding: 18px;
+            font-size: 1.1rem;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            color: var(--text-dark);
+        }
+
+        @media (hover: hover) {
+            .option-btn:hover:not(:disabled) {
+                border-color: var(--primary-blue);
+                background-color: #f1f7ff;
+            }
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            height: 30px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn-ctrl {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+
+        @media (max-width: 500px) {
+            .prompt-box { font-size: 1.2rem; padding: 15px; }
+            .option-btn { padding: 14px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 8</div>
+    <h2>Anpassung: Finde das Paar</h2>
+    <p class="instruction">Welches Adjektiv + Substantiv passt zur Zahlform?</p>
+
+    <div class="prompt-box" id="promptBox">
+        <!-- Anzeige: к пяти + ... -->
+    </div>
+
+    <div class="options-list" id="optionsArea">
+        <!-- Buttons -->
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer">
+        <button class="btn-ctrl btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn-ctrl btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            q: "к пяти",
+            options: ["любимым подругам", "любимых подруг"],
+            correct: 0,
+            info: "Dativ: Alles muss im Dativ stehen."
+        },
+        {
+            q: "с пятьюдесятью",
+            options: ["новыми проектами", "новых проектов"],
+            correct: 0,
+            info: "Instrumental: Alles muss im Instrumental stehen."
+        },
+        {
+            q: "о ста",
+            options: ["старых книгах", "старые книги"],
+            correct: 0,
+            info: "Präpositiv: Alles muss im Präpositiv stehen."
+        },
+        {
+            q: "семи",
+            options: ["маленьких кошек", "маленьким кошкам"],
+            correct: 0,
+            info: "Genitiv: Alles muss im Genitiv stehen."
+        },
+        {
+            q: "сорока",
+            options: ["верным друзьям", "верные друзья"],
+            correct: 0,
+            info: "Dativ: Alles muss im Dativ stehen."
+        },
+        {
+            q: "восьмью",
+            options: ["красивыми картинами", "красивые картины"],
+            correct: 0,
+            info: "Instrumental: Alles muss im Instrumental stehen."
+        },
+        {
+            q: "о девяноста",
+            options: ["известных поэтах", "известные поэты"],
+            correct: 0,
+            info: "Präpositiv: Alles muss im Präpositiv stehen."
+        },
+        {
+            q: "шести",
+            options: ["интересных рассказов", "интересные рассказы"],
+            correct: 0,
+            info: "Genitiv: Alles muss im Genitiv stehen."
+        }
+    ];
+
+    let currentIdx = 0;
+    let locked = false;
+
+    function init() {
+        locked = false;
+        const data = quizData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('promptBox').innerHTML = `${data.q} + <span class="blank">...</span>`;
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('solveBtn').disabled = false;
+
+        const optionsArea = document.getElementById('optionsArea');
+        optionsArea.innerHTML = "";
+
+        // Optionen mischen, damit die richtige Antwort nicht immer oben steht
+        let indices = [0, 1];
+        indices.sort(() => Math.random() - 0.5);
+
+        indices.forEach(i => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = data.options[i];
+            btn.onclick = () => check(i, btn);
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function check(i, btn) {
+        if (locked) return;
+        const data = quizData[currentIdx];
+
+        if (i === data.correct) {
+            locked = true;
+            btn.classList.add('correct');
+            document.querySelector('.blank').innerText = data.options[i];
+            document.querySelector('.blank').style.color = "var(--success-green)";
+            showFeedback("Richtig! " + data.info, "var(--success-green)");
+            setTimeout(next, 2500);
+        } else {
+            btn.classList.add('wrong');
+            showFeedback("Falsch. Achte auf den Fall!", "var(--error-red)");
+            setTimeout(() => btn.classList.remove('wrong'), 800);
+        }
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const data = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons.forEach(b => {
+            if (b.innerText === data.options[data.correct]) {
+                b.classList.add('correct');
+            }
+        });
+
+        document.querySelector('.blank').innerText = data.options[data.correct];
+        showFeedback("Lösung: " + data.info, "var(--primary-blue)");
+        document.getElementById('solveBtn').disabled = true;
+        setTimeout(next, 3000);
+    }
+
+    function showFeedback(txt, col) {
+        const f = document.getElementById('feedbackArea');
+        f.innerText = txt;
+        f.style.color = col;
+    }
+
+    function next() {
+        if (currentIdx < quizData.length - 1) {
+            currentIdx++;
+            init();
+        } else {
+            showFeedback("Hervorragend! Du hast alle Anpassungen gemeistert.", "var(--text-dark)");
+            document.getElementById('promptBox').innerHTML = "Fertig! 🎉";
+        }
+    }
+
+    function restart() {
+        currentIdx = 0;
+        init();
+    }
+
+    init();
+</script>
+
+</body>
+</html>
