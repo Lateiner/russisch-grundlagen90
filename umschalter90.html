@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle-Quiz: Sondergruppe 40, 90, 100</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f2f5;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; }
+        
+        /* Die Satz-Box */
+        .sentence-box {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 30px 20px;
+            margin-bottom: 25px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .sentence-text {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .highlight-blank {
+            color: var(--primary-blue);
+            font-weight: bold;
+            border-bottom: 2px solid var(--primary-blue);
+            padding: 0 5px;
+        }
+
+        /* Der Toggle-Button */
+        .toggle-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            margin: 10px 0;
+        }
+
+        .toggle-btn:hover { background: #0056b3; }
+        .toggle-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+        /* Optionen */
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+            visibility: hidden; /* Erst nach Toggle sichtbar */
+        }
+
+        .option-btn {
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            margin-top: 20px;
+            height: 24px;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn-footer {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        @media (max-width: 500px) {
+            .sentence-text { font-size: 1.2rem; }
+            .option-btn { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="progress" id="progress">Aufgabe 1 von 5</div>
+    <h2>Umschalter: 40, 90, 100</h2>
+    <p>Ändere den Satzbau und wähle die richtige Form.</p>
+
+    <div class="sentence-box">
+        <div id="sentenceDisplay" class="sentence-text">
+            Там <b>сто</b> человек.
+        </div>
+        
+        <button id="toggleTrigger" class="toggle-btn" onclick="toggleSentence()">
+            <svg viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></svg>
+            Satz ändern
+        </button>
+    </div>
+
+    <div class="options-container" id="optionsArea">
+        <button class="option-btn" id="opt0" onclick="checkAnswer(0)"></button>
+        <button class="option-btn" id="opt1" onclick="checkAnswer(1)"></button>
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="controls">
+        <button class="btn-footer btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn-footer btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            nom: "Там <b>сто</b> человек.",
+            targetPrefix: "Около ",
+            targetSuffix: " человек.",
+            options: ["сто", "ста"],
+            correct: 1,
+            hint: "Genitiv von 100"
+        },
+        {
+            nom: "Я вижу <b>сорок</b> друзей.",
+            targetPrefix: "Я купил подарки ",
+            targetSuffix: " друзьям.",
+            options: ["сорок", "сорока"],
+            correct: 1,
+            hint: "Dativ von 40"
+        },
+        {
+            nom: "Там <b>девяносто</b> собак.",
+            targetPrefix: "У меня нет ",
+            targetSuffix: " собак.",
+            options: ["девяносто", "девяноста"],
+            correct: 1,
+            hint: "Genitiv von 90"
+        },
+        {
+            nom: "Это <b>сто</b> зданий.",
+            targetPrefix: "Я говорю о ",
+            targetSuffix: " зданиях.",
+            options: ["сто", "ста"],
+            correct: 1,
+            hint: "Präpositiv von 100"
+        },
+        {
+            nom: "У меня <b>сорок</b> маркеров.",
+            targetPrefix: "Я иду в путешествие с ",
+            targetSuffix: " друзьями.",
+            options: ["сорок", "сорока"],
+            correct: 1,
+            hint: "Instrumental von 40"
+        }
+    ];
+
+    let currentIdx = 0;
+    let isToggled = false;
+    let answered = false;
+
+    function initQuestion() {
+        const data = quizData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('sentenceDisplay').innerHTML = data.nom;
+        document.getElementById('optionsArea').style.visibility = "hidden";
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('toggleTrigger').disabled = false;
+        document.getElementById('solveBtn').disabled = false;
+        isToggled = false;
+        answered = false;
+
+        const opt0 = document.getElementById('opt0');
+        const opt1 = document.getElementById('opt1');
+        opt0.innerText = data.options[0];
+        opt1.innerText = data.options[1];
+        opt0.className = "option-btn";
+        opt1.className = "option-btn";
+    }
+
+    function toggleSentence() {
+        if (isToggled) return;
+        
+        const data = quizData[currentIdx];
+        const display = document.getElementById('sentenceDisplay');
+        
+        display.innerHTML = data.targetPrefix + '<span class="highlight-blank">...</span>' + data.targetSuffix;
+        document.getElementById('optionsArea').style.visibility = "visible";
+        document.getElementById('toggleTrigger').disabled = true;
+        isToggled = true;
+    }
+
+    function checkAnswer(idx) {
+        if (answered || !isToggled) return;
+
+        const data = quizData[currentIdx];
+        const feedback = document.getElementById('feedbackArea');
+        const optBtn = document.getElementById('opt' + idx);
+
+        if (idx === data.correct) {
+            optBtn.classList.add('correct');
+            feedback.innerText = "Richtig! " + data.hint;
+            feedback.style.color = "var(--success-green)";
+            answered = true;
+            document.querySelector('.highlight-blank').innerText = data.options[idx];
+            
+            setTimeout(nextQuestion, 2000);
+        } else {
+            optBtn.classList.add('wrong');
+            feedback.innerText = "Falsch. Denke an die Endung -а!";
+            feedback.style.color = "var(--error-red)";
+            setTimeout(() => optBtn.classList.remove('wrong'), 800);
+        }
+    }
+
+    function showSolution() {
+        if (answered) return;
+        if (!isToggled) toggleSentence();
+
+        const data = quizData[currentIdx];
+        const optBtn = document.getElementById('opt' + data.correct);
+        optBtn.classList.add('correct');
+        document.querySelector('.highlight-blank').innerText = data.options[data.correct];
+        answered = true;
+        
+        document.getElementById('feedbackArea').innerText = "Lösung angezeigt.";
+        document.getElementById('feedbackArea').style.color = "var(--primary-blue)";
+        
+        setTimeout(nextQuestion, 2500);
+    }
+
+    function nextQuestion() {
+        if (currentIdx < quizData.length - 1) {
+            currentIdx++;
+            initQuestion();
+        } else {
+            document.getElementById('sentenceDisplay').innerHTML = "<b>Super!</b><br>Du hast alle Sätze umgewandelt.";
+            document.getElementById('optionsArea').style.visibility = "hidden";
+            document.getElementById('toggleTrigger').style.display = "none";
+        }
+    }
+
+    function restart() {
+        currentIdx = 0;
+        document.getElementById('toggleTrigger').style.display = "flex";
+        initQuestion();
+    }
+
+    // Start
+    initQuestion();
+</script>
+
+</body>
+</html>
