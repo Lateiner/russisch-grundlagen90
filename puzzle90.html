@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satz-Puzzle: Kongruenz</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f4f7f6;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; }
+        p.instruction { color: #636e72; margin-bottom: 25px; font-size: 0.95rem; }
+
+        /* Bereich für den fertigen Satz */
+        .target-area {
+            min-height: 80px;
+            padding: 15px;
+            border: 2px solid #dfe6e9;
+            background-color: #fcfcfc;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .target-area.correct { border-color: var(--success-green); background-color: #f0fff4; }
+        .target-area.wrong { border-color: var(--error-red); background-color: #fff5f5; }
+
+        /* Bereich für die Wort-Chips */
+        .pool-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            min-height: 50px;
+        }
+
+        .chip {
+            background: white;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 10px 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .chip:hover { background-color: #f0f7ff; }
+
+        .chip.in-target {
+            background-color: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-restart { background-color: #6c757d; }
+        .btn-solve { background-color: var(--success-green); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 500px) {
+            .container { padding: 20px 15px; }
+            .chip { padding: 8px 14px; font-size: 0.9rem; }
+            h2 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="progress" id="progressIndicator">Satz 1 von 5</div>
+    <h2>Satz-Puzzle: Kongruenz</h2>
+    <p class="instruction">Bringe die Wörter in die richtige Reihenfolge. Achte auf die Übereinstimmung von Zahl und Adjektiv!</p>
+
+    <div class="target-area" id="targetArea">
+        <!-- Hier erscheinen die gewählten Wörter -->
+    </div>
+
+    <div class="pool-area" id="poolArea">
+        <!-- Hier liegen die verfügbaren Wörter -->
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const puzzleData = [
+        {
+            correctOrder: ["С", "пятидесятью", "новыми", "друзьями."],
+            shuffled: ["новыми", "С", "друзьями.", "пятидесятью"]
+        },
+        {
+            correctOrder: ["О", "сорока", "старых", "книгах."],
+            shuffled: ["сорока", "книгах.", "О", "старых"]
+        },
+        {
+            correctOrder: ["К", "пяти", "известным", "художникам."],
+            shuffled: ["известным", "пяти", "художникам.", "К"]
+        },
+        {
+            correctOrder: ["С", "семью", "красивыми", "картинами."],
+            shuffled: ["семью", "картинами.", "красивыми", "С"]
+        },
+        {
+            correctOrder: ["О", "девяноста", "маленьких", "собаках."],
+            shuffled: ["маленьких", "девяноста", "собаках.", "О"]
+        }
+    ];
+
+    let currentIdx = 0;
+    let currentSentence = [];
+    let answered = false;
+
+    function loadPuzzle() {
+        answered = false;
+        currentSentence = [];
+        const data = puzzleData[currentIdx];
+        
+        document.getElementById('progressIndicator').innerText = `Satz ${currentIdx + 1} von ${puzzleData.length}`;
+        document.getElementById('targetArea').innerHTML = '';
+        document.getElementById('targetArea').className = 'target-area';
+        document.getElementById('solveBtn').disabled = false;
+
+        const pool = document.getElementById('poolArea');
+        pool.innerHTML = '';
+
+        // Zufällig gemischte Wörter aus dem Datenobjekt laden
+        data.shuffled.forEach((word, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerText = word;
+            chip.onclick = () => addWord(word, chip);
+            pool.appendChild(chip);
+        });
+    }
+
+    function addWord(word, chip) {
+        if (answered || chip.style.display === 'none') return;
+
+        currentSentence.push(word);
+        chip.style.display = 'none';
+        
+        const targetChip = document.createElement('div');
+        targetChip.className = 'chip in-target';
+        targetChip.innerText = word;
+        targetChip.onclick = () => removeWord(word, chip, targetChip);
+        
+        document.getElementById('targetArea').appendChild(targetChip);
+        
+        checkSentence();
+    }
+
+    function removeWord(word, originalChip, targetChip) {
+        if (answered) return;
+
+        const index = currentSentence.indexOf(word);
+        if (index > -1) {
+            currentSentence.splice(index, 1);
+        }
+        
+        originalChip.style.display = 'block';
+        targetChip.remove();
+        
+        document.getElementById('targetArea').className = 'target-area';
+    }
+
+    function checkSentence() {
+        const data = puzzleData[currentIdx];
+        if (currentSentence.length === data.correctOrder.length) {
+            const isCorrect = JSON.stringify(currentSentence) === JSON.stringify(data.correctOrder);
+            const targetArea = document.getElementById('targetArea');
+            
+            if (isCorrect) {
+                targetArea.classList.add('correct');
+                answered = true;
+                setTimeout(nextPuzzle, 2000);
+            } else {
+                targetArea.classList.add('wrong');
+                setTimeout(() => targetArea.classList.remove('wrong'), 1000);
+            }
+        }
+    }
+
+    function showSolution() {
+        if (answered) return;
+        answered = true;
+        
+        const data = puzzleData[currentIdx];
+        const targetArea = document.getElementById('targetArea');
+        targetArea.innerHTML = '';
+        
+        data.correctOrder.forEach(word => {
+            const chip = document.createElement('div');
+            chip.className = 'chip in-target';
+            chip.innerText = word;
+            chip.style.backgroundColor = "var(--success-green)";
+            chip.style.borderColor = "var(--success-green)";
+            targetArea.appendChild(chip);
+        });
+
+        document.getElementById('poolArea').innerHTML = '';
+        targetArea.classList.add('correct');
+        document.getElementById('solveBtn').disabled = true;
+
+        setTimeout(nextPuzzle, 3000);
+    }
+
+    function nextPuzzle() {
+        if (currentIdx < puzzleData.length - 1) {
+            currentIdx++;
+            loadPuzzle();
+        } else {
+            document.getElementById('targetArea').innerHTML = "<strong>Großartig!</strong> Alle Puzzles gelöst.";
+            document.getElementById('poolArea').innerHTML = "Du hast die Kongruenz-Regeln verstanden.";
+        }
+    }
+
+    function restart() {
+        loadPuzzle();
+    }
+
+    // Erster Start
+    loadPuzzle();
+</script>
+
+</body>
+</html>
