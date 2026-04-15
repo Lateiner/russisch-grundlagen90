@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hör-Übung: Sondergruppe 40, 90, 100</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f2f5;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 { color: var(--text-dark); margin-top: 0; }
+        p.instruction { color: #636e72; margin-bottom: 30px; }
+
+        /* Audio-Button */
+        .audio-section {
+            margin-bottom: 40px;
+        }
+
+        .play-btn {
+            width: 100px;
+            height: 100px;
+            background-color: var(--primary-blue);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 6px 15px rgba(0,123,255,0.3);
+        }
+
+        .play-btn:hover { background-color: #0056b3; transform: scale(1.05); }
+        .play-btn:active { transform: scale(0.95); }
+
+        .play-btn svg {
+            width: 50px;
+            height: 50px;
+            fill: white;
+        }
+
+        /* Ziffern-Grid */
+        .number-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .num-card {
+            background: white;
+            border: 2px solid #dfe6e9;
+            padding: 25px 10px;
+            border-radius: 15px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dark);
+        }
+
+        @media (hover: hover) {
+            .num-card:hover:not(.disabled) {
+                border-color: var(--primary-blue);
+                background-color: #f1f7ff;
+            }
+        }
+
+        .num-card.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .num-card.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            height: 30px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            background-color: #6c757d;
+        }
+
+        @media (max-width: 400px) {
+            .num-card { font-size: 1.4rem; padding: 20px 5px; }
+            .play-btn { width: 80px; height: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <h2>Bild-Diktat-Zuordnung</h2>
+    <p class="instruction">Klicke auf den Button, höre die Zahl und wähle die richtige Ziffer.</p>
+
+    <div class="audio-section">
+        <button class="play-btn" onclick="playAudio()" title="Zahl anhören">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <p id="audio-status" style="font-size: 0.8rem; color: #888; margin-top: 10px;">Klicke zum Abspielen</p>
+    </div>
+
+    <div class="number-grid">
+        <div class="num-card" id="card40" onclick="checkAnswer(40)">40</div>
+        <div class="num-card" id="card90" onclick="checkAnswer(90)">90</div>
+        <div class="num-card" id="card100" onclick="checkAnswer(100)">100</div>
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer">
+        <button class="btn-action" onclick="restart()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    // Aufgabenpool (Zahlen im gebeugten Fall)
+    const questions = [
+        { text: "сорока", digit: 40 },
+        { text: "девяноста", digit: 90 },
+        { text: "ста", digit: 100 },
+        { text: "около сорока", digit: 40 },
+        { text: "около девяноста", digit: 90 },
+        { text: "около ста", digit: 100 }
+    ];
+
+    let currentQuestion;
+    let synth = window.speechSynthesis;
+    let russianMaleVoice = null;
+    let answered = false;
+
+    // Stimmen laden und männliche russische Stimme suchen
+    function loadVoices() {
+        let voices = synth.getVoices();
+        // Suche nach russischen Stimmen
+        let ruVoices = voices.filter(v => v.lang.startsWith('ru'));
+        
+        // Versuche eine männliche Stimme zu finden (Maxim, Pavel, etc.)
+        russianMaleVoice = ruVoices.find(v => 
+            v.name.toLowerCase().includes('maxim') || 
+            v.name.toLowerCase().includes('pavel') || 
+            v.name.toLowerCase().includes('male')
+        ) || ruVoices[0]; // Fallback auf die erste russische Stimme
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function initQuiz() {
+        answered = false;
+        currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById('feedbackArea').innerText = "";
+        document.querySelectorAll('.num-card').forEach(c => c.className = 'num-card');
+        document.getElementById('audio-status').innerText = "Bereit zum Abspielen";
+        loadVoices();
+    }
+
+    function playAudio() {
+        if (synth.speaking) return;
+        
+        let utter = new SpeechSynthesisUtterance(currentQuestion.text);
+        utter.voice = russianMaleVoice;
+        utter.lang = 'ru-RU';
+        utter.rate = 0.8; // Etwas langsamer für besseres Verständnis
+        
+        utter.onstart = () => { document.getElementById('audio-status').innerText = "Spiele ab..."; };
+        utter.onend = () => { document.getElementById('audio-status').innerText = "Nochmal abspielen?"; };
+        
+        synth.speak(utter);
+    }
+
+    function checkAnswer(digit) {
+        if (answered) return;
+
+        const selectedCard = document.getElementById('card' + digit);
+        
+        if (digit === currentQuestion.digit) {
+            selectedCard.classList.add('correct');
+            document.getElementById('feedbackArea').innerText = "Richtig! Das war: " + currentQuestion.text;
+            document.getElementById('feedbackArea').style.color = "var(--success-green)";
+            answered = true;
+        } else {
+            selectedCard.classList.add('wrong');
+            document.getElementById('feedbackArea').innerText = "Leider falsch. Hör noch einmal genau hin!";
+            document.getElementById('feedbackArea').style.color = "var(--error-red)";
+            setTimeout(() => {
+                if(!answered) selectedCard.classList.remove('wrong');
+            }, 1000);
+        }
+    }
+
+    function restart() {
+        initQuiz();
+    }
+
+    // Initialisierung
+    setTimeout(initQuiz, 500); // Kurze Verzögerung zum Laden der Stimmen
+</script>
+
+</body>
+</html>
