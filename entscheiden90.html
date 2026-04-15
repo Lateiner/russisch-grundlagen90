@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Szenario-Entscheidung: Komplexe Mengenangaben</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f0f2f5;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .progress {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        h2 { text-align: center; color: var(--text-dark); margin-top: 0; }
+
+        /* Dialog-Stil */
+        .dialog-box {
+            background: #f8f9fa;
+            border-left: 5px solid var(--primary-blue);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1.15rem;
+            line-height: 1.6;
+        }
+
+        .speaker { font-weight: bold; color: #555; }
+        .blank {
+            color: var(--primary-blue);
+            font-weight: bold;
+            border-bottom: 2px solid var(--primary-blue);
+            padding: 0 5px;
+        }
+
+        /* Optionen */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        @media (min-width: 600px) {
+            .options-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .option-card {
+            background: #fff;
+            border: 2px solid #dee2e6;
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1rem;
+            min-height: 60px;
+        }
+
+        .option-card:hover:not(.locked) {
+            border-color: var(--primary-blue);
+            background-color: #f1f7ff;
+        }
+
+        .option-card.correct {
+            background-color: var(--success-green) !important;
+            color: white;
+            border-color: var(--success-green);
+        }
+
+        .option-card.wrong {
+            background-color: var(--error-red) !important;
+            color: white;
+            border-color: var(--error-red);
+        }
+
+        .feedback {
+            text-align: center;
+            height: 30px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        @media (max-width: 500px) {
+            .dialog-box { font-size: 1rem; }
+            .option-card { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 5</div>
+    <h2>Szenario-Entscheidung</h2>
+    <p style="text-align: center; color: #666; margin-bottom: 20px;">Wähle die grammatikalisch korrekte Antwort aus.</p>
+
+    <div class="dialog-box" id="dialogArea">
+        <!-- Dialog wird hier geladen -->
+    </div>
+
+    <div class="options-grid" id="optionsArea">
+        <!-- 4 Optionen -->
+    </div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="footer">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" id="solveBtn" onclick="showSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const scenarioData = [
+        {
+            dialog: `<span class="speaker">А:</span> У тебя есть новые маркеры?<br>
+                     <span class="speaker">Б:</span> Да, но у меня нет только <span class="blank">...</span>`,
+            options: [
+                "пять новых маркеров",
+                "пяти новых маркеров",
+                "пять новые маркеры",
+                "пяти новые маркеры"
+            ],
+            correct: 1, // Genitiv nach "нет"
+            info: "Nach „нет“ folgt der Genitiv (пяти + Gen. Plural)."
+        },
+        {
+            dialog: `<span class="speaker">А:</span> О чём вы говорили на уроке?<br>
+                     <span class="speaker">Б:</span> Мы говорили о <span class="blank">...</span>`,
+            options: [
+                "сорок старых книгах",
+                "сорока старых книги",
+                "сорока старых книгах",
+                "сорок старые книги"
+            ],
+            correct: 2, // Präpositiv von 40
+            info: "Präpositiv: Sondergruppe 40 hat die Endung -а (сорока)."
+        },
+        {
+            dialog: `<span class="speaker">А:</span> С кем ты идёшь в кино?<br>
+                     <span class="speaker">Б:</span> Я иду с <span class="blank">...</span>`,
+            options: [
+                "пятьдесят новыми друзьями",
+                "пятьюдесятью новыми друзьями",
+                "пятьюдесятью новых друзей",
+                "пятидесяти новыми друзьями"
+            ],
+            correct: 1, // Instrumental von 50
+            info: "Instrumental: Beide Teile der 50 und das Adjektiv müssen im Instrumental stehen."
+        },
+        {
+            dialog: `<span class="speaker">А:</span> Сколько людей было на площади?<br>
+                     <span class="speaker">Б:</span> Там было около <span class="blank">...</span>`,
+            options: [
+                "ста маленьких детей",
+                "сто маленьких детей",
+                "ста маленькие дети",
+                "сто маленькие дети"
+            ],
+            correct: 0, // Genitiv von 100
+            info: "Genitiv: Sondergruppe 100 wird zu „ста“."
+        },
+        {
+            dialog: `<span class="speaker">А:</span> К кому вы ходили в гости?<br>
+                     <span class="speaker">Б:</span> Мы ходили к <span class="blank">...</span>`,
+            options: [
+                "восьми старым знакомым",
+                "восемь старым знакомым",
+                "восьми старых знакомых",
+                "восемью старым знакомым"
+            ],
+            correct: 0, // Dativ von 8
+            info: "Dativ: Zahl, Adjektiv und Substantiv stehen alle im Dativ."
+        }
+    ];
+
+    let currentIdx = 0;
+    let answered = false;
+
+    function initScenario() {
+        answered = false;
+        const data = scenarioData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${scenarioData.length}`;
+        document.getElementById('dialogArea').innerHTML = data.dialog;
+        document.getElementById('feedbackArea').innerText = "";
+        document.getElementById('solveBtn').disabled = false;
+
+        const optArea = document.getElementById('optionsArea');
+        optArea.innerHTML = "";
+
+        data.options.forEach((text, i) => {
+            const card = document.createElement('div');
+            card.className = 'option-card';
+            card.innerText = text;
+            card.onclick = () => check(i, card);
+            optArea.appendChild(card);
+        });
+    }
+
+    function check(i, card) {
+        if (answered) return;
+        const data = scenarioData[currentIdx];
+
+        if (i === data.correct) {
+            answered = true;
+            card.classList.add('correct');
+            document.querySelector('.blank').innerText = data.options[i];
+            showFeedback("Richtig! " + data.info, "var(--success-green)");
+            setTimeout(next, 3000);
+        } else {
+            card.classList.add('wrong');
+            showFeedback("Leider falsch. Überprüfe die Fälle!", "var(--error-red)");
+            setTimeout(() => card.classList.remove('wrong'), 1000);
+        }
+    }
+
+    function showSolution() {
+        if (answered) return;
+        const data = scenarioData[currentIdx];
+        const cards = document.querySelectorAll('.option-card');
+        
+        cards[data.correct].classList.add('correct');
+        document.querySelector('.blank').innerText = data.options[data.correct];
+        answered = true;
+        showFeedback("Lösung: " + data.info, "var(--primary-blue)");
+        document.getElementById('solveBtn').disabled = true;
+        setTimeout(next, 4000);
+    }
+
+    function showFeedback(txt, col) {
+        const f = document.getElementById('feedbackArea');
+        f.innerText = txt;
+        f.style.color = col;
+    }
+
+    function next() {
+        if (currentIdx < scenarioData.length - 1) {
+            currentIdx++;
+            initScenario();
+        } else {
+            document.getElementById('dialogArea').innerHTML = "<strong>Gratulation!</strong><br>Du hast alle Szenarien erfolgreich gelöst.";
+            document.getElementById('optionsArea').innerHTML = "";
+            document.getElementById('feedbackArea').innerText = "Du beherrschst nun die Deklination russischer Zahlwörter.";
+        }
+    }
+
+    function restart() {
+        currentIdx = 0;
+        initScenario();
+    }
+
+    initScenario();
+</script>
+
+</body>
+</html>
