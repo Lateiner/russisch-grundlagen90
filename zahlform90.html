@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sortieren: Zahlenformen</title>
+    <style>
+        :root {
+            --primary-blue: #007bff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --bg-color: #f4f7f6;
+            --text-dark: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 800px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: var(--text-dark); margin-top: 0; }
+        p.instruction { text-align: center; color: #636e72; margin-bottom: 25px; }
+
+        /* Wort-Pool */
+        #number-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: #eef2f7;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            min-height: 60px;
+        }
+
+        .number-chip {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            user-select: none;
+            transition: transform 0.2s, background-color 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .number-chip.selected {
+            background-color: #fd7e14;
+            transform: scale(1.1);
+        }
+
+        /* Sortier-Körbe */
+        .basket-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .basket {
+            flex: 1;
+            min-width: 280px;
+            min-height: 200px;
+            background: #fff;
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .basket h3 {
+            width: 100%;
+            text-align: center;
+            margin-top: 0;
+            font-size: 1rem;
+            color: #4a5568;
+            pointer-events: none;
+        }
+
+        .basket.correct-glow { border-color: var(--success-green); background: #f0fff4; }
+        .basket.wrong-glow { border-color: var(--error-red); background: #fff5f5; }
+
+        /* Buttons */
+        .controls {
+            margin-top: 35px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-restart { background: #6c757d; }
+        .btn-solve { background: var(--success-green); }
+
+        @media (max-width: 600px) {
+            .basket { min-width: 100%; min-height: 150px; }
+            .number-chip { font-size: 1rem; padding: 8px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sortieren: Deklinations-Gruppen</h2>
+    <p class="instruction">Klicke eine Zahl an und wähle dann den richtigen Korb.</p>
+
+    <div id="number-pool"></div>
+
+    <div class="basket-container">
+        <!-- Gruppe A: Viele Formen -->
+        <div class="basket" id="manyForms" onclick="placeNumber(this, 'many')">
+            <h3>Zahlen mit vielen Formen<br>(z.B. 5, 10, 50...)</h3>
+        </div>
+
+        <!-- Gruppe B: Sondergruppe -->
+        <div class="basket" id="twoForms" onclick="placeNumber(this, 'special')">
+            <h3>Sondergruppe<br>(Nur 2 Formen: 40, 90, 100)</h3>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-restart" onclick="restart()">Neustart</button>
+        <button class="btn btn-solve" onclick="solve()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const numbers = [
+        { val: "5", group: "many" },
+        { val: "10", group: "many" },
+        { val: "20", group: "many" },
+        { val: "40", group: "special" },
+        { val: "50", group: "many" },
+        { val: "80", group: "many" },
+        { val: "90", group: "special" },
+        { val: "100", group: "special" }
+    ];
+
+    let selectedChip = null;
+
+    function initPool() {
+        const pool = document.getElementById('number-pool');
+        pool.innerHTML = '';
+        const shuffled = [...numbers].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.className = 'number-chip';
+            div.innerText = item.val;
+            div.dataset.group = item.group;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                selectChip(div);
+            };
+            pool.appendChild(div);
+        });
+        selectedChip = null;
+    }
+
+    function selectChip(chip) {
+        document.querySelectorAll('.number-chip').forEach(c => c.classList.remove('selected'));
+        if (selectedChip === chip) {
+            selectedChip = null;
+        } else {
+            selectedChip = chip;
+            chip.classList.add('selected');
+        }
+    }
+
+    function placeNumber(basket, basketGroup) {
+        if (!selectedChip) return;
+
+        const correctGroup = selectedChip.dataset.group;
+
+        if (basketGroup === correctGroup) {
+            basket.appendChild(selectedChip);
+            selectedChip.classList.remove('selected');
+            selectedChip.style.backgroundColor = "var(--success-green)";
+            selectedChip.onclick = null; // Deaktivieren nach richtiger Platzierung
+            selectedChip = null;
+            
+            basket.classList.add('correct-glow');
+            setTimeout(() => basket.classList.remove('correct-glow'), 500);
+        } else {
+            selectedChip.style.backgroundColor = "var(--error-red)";
+            basket.classList.add('wrong-glow');
+            const chipToReset = selectedChip;
+            setTimeout(() => {
+                chipToReset.style.backgroundColor = "var(--primary-blue)";
+                basket.classList.remove('wrong-glow');
+            }, 500);
+        }
+    }
+
+    function restart() {
+        document.getElementById('manyForms').innerHTML = '<h3>Zahlen mit vielen Formen<br>(z.B. 5, 10, 50...)</h3>';
+        document.getElementById('twoForms').innerHTML = '<h3>Sondergruppe<br>(Nur 2 Formen: 40, 90, 100)</h3>';
+        initPool();
+    }
+
+    function solve() {
+        const manyBasket = document.getElementById('manyForms');
+        const specialBasket = document.getElementById('twoForms');
+        const chips = document.querySelectorAll('.number-chip');
+
+        chips.forEach(chip => {
+            chip.style.backgroundColor = "var(--success-green)";
+            if (chip.dataset.group === 'many') {
+                manyBasket.appendChild(chip);
+            } else {
+                specialBasket.appendChild(chip);
+            }
+        });
+    }
+
+    initPool();
+</script>
+
+</body>
+</html>
